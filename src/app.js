@@ -15,10 +15,11 @@ import { requestLoggerMiddleware } from "./middlewares/requestLoggerMiddleware.j
 import { sanitizeInputMiddleware } from "./middlewares/sanitizeInputMiddleware.js";
 import { csrfHardeningMiddleware } from "./middlewares/csrfHardeningMiddleware.js";
 import { apiRateLimiter } from "./middlewares/apiRateLimiter.js";
+import { honeypotMiddleware } from "./middlewares/honeypotMiddleware.js";
 
 const app = express();
 
-//app.disable("x-powered-by");
+app.disable("x-powered-by");
 
 
 app.set("trust proxy", 1);
@@ -28,10 +29,6 @@ app.use(metricsMiddleware);
 app.use(requestLoggerMiddleware);
 
 app.use(helmet());
-app.use((req, res, next) => {
-  res.setHeader('X-Powered-By', 'PHP/8.2.0'); // Mimicking PHP
-  next();
-});
 app.use(corsMiddleware);
 app.use(compression());
 app.use(express.json({ limit: env.bodyLimit }));
@@ -39,6 +36,7 @@ app.use(cookieParser());
 app.use(mongoSanitize());
 app.use(hpp());
 app.use(sanitizeInputMiddleware);
+app.use(honeypotMiddleware);
 app.use(csrfHardeningMiddleware);
 app.use("/api", apiRateLimiter);
 

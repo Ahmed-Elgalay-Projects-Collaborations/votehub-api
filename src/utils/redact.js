@@ -2,6 +2,8 @@ const SENSITIVE_KEYS = [
   "password",
   "email",
   "fullname",
+  "otpcode",
+  "recoverycode",
   "token",
   "authorization",
   "cookie",

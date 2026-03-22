@@ -14,12 +14,19 @@ const voteSchema = new mongoose.Schema(
       required: true,
       index: true
     },
-    optionIds: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        required: true
-      }
-    ],
+    encryptedOptionIds: {
+      type: String,
+      required: true,
+      select: false
+    },
+    optionIdsDigest: {
+      type: String,
+      required: true
+    },
+    receiptDigest: {
+      type: String,
+      default: ""
+    },
     ipHash: {
       type: String,
       default: "",

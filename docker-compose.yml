@@ -4,8 +4,6 @@ services:
       context: .
       target: development
     command: npm run dev -- --legacy-watch
-    env_file:
-      - .env
     ports:
       - "${PORT:-3100}:3100"
     environment:

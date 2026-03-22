@@ -24,14 +24,15 @@ export const registerUser = async ({ fullName, email, password, role = "voter" }
     fullName,
     email,
     password: passwordHash,
-    role
+    role,
+    emailVerified: false
   });
 
   return buildAuthPayload(user);
 };
 
 export const authenticateUser = async ({ email, password }) => {
-  const user = await User.findOne({ email }).select("+password");
+  const user = await User.findOne({ email }).select("+password +otpSecretEncrypted +otpTempSecretEncrypted +otpRecoveryCodes");
 
   if (!user || !user.isActive) {
     return null;
@@ -46,6 +47,13 @@ export const authenticateUser = async ({ email, password }) => {
 };
 
 export const issueLoginPayload = (user) => buildAuthPayload(user);
+
+export const recordSuccessfulLoginContext = async (user, { ipAddress, userAgent }) => {
+  user.lastLoginAt = new Date();
+  user.lastLoginIp = ipAddress || null;
+  user.lastLoginUserAgent = userAgent || null;
+  await user.save();
+};
 
 export const ensureDefaultAdmin = async () => {
   if (!env.defaultAdminEmail || !env.defaultAdminPassword) {
@@ -62,7 +70,10 @@ export const ensureDefaultAdmin = async () => {
     fullName: "VoteHub Admin",
     email: env.defaultAdminEmail,
     password: passwordHash,
-    role: "admin"
+    role: "admin",
+    emailVerified: true,
+    emailVerifiedAt: new Date(),
+    otpEnabled: true
   });
 
   appLogger.warn("Default admin account created from environment variables");

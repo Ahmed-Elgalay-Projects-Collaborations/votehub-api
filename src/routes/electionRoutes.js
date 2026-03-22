@@ -10,6 +10,7 @@ import {
 } from "../controllers/electionController.js";
 import { castVoteController } from "../controllers/voteController.js";
 import { authorizeRoles, optionalAuth, requireAuth } from "../middlewares/authMiddleware.js";
+import { requireAdminStepUp } from "../middlewares/adminStepUpMiddleware.js";
 import { validateRequestMiddleware } from "../middlewares/validateRequestMiddleware.js";
 import {
   changeElectionStatusValidation,
@@ -34,11 +35,12 @@ router.post(
   castVoteController
 );
 
-router.post("/", requireAuth, authorizeRoles("admin"), createElectionValidation, validateRequestMiddleware, createElectionController);
+router.post("/", requireAuth, authorizeRoles("admin"), requireAdminStepUp, createElectionValidation, validateRequestMiddleware, createElectionController);
 router.patch(
   "/:electionId",
   requireAuth,
   authorizeRoles("admin"),
+  requireAdminStepUp,
   electionIdParamValidation,
   updateElectionValidation,
   validateRequestMiddleware,
@@ -48,6 +50,7 @@ router.patch(
   "/:electionId/status",
   requireAuth,
   authorizeRoles("admin"),
+  requireAdminStepUp,
   electionIdParamValidation,
   changeElectionStatusValidation,
   validateRequestMiddleware,
@@ -57,6 +60,7 @@ router.delete(
   "/:electionId",
   requireAuth,
   authorizeRoles("admin"),
+  requireAdminStepUp,
   electionIdParamValidation,
   validateRequestMiddleware,
   archiveElectionController

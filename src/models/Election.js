@@ -48,7 +48,7 @@ const electionSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["draft", "open", "closed", "archived"],
+      enum: ["draft", "published", "open", "closed", "archived"],
       default: "draft",
       index: true
     },
@@ -85,4 +85,3 @@ electionSchema.index({ type: 1, status: 1, startsAt: 1, endsAt: 1 });
 
 const Election = mongoose.model("Election", electionSchema);
 export default Election;
-

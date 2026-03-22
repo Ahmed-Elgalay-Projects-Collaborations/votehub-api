@@ -1,8 +1,18 @@
 import { incrementSecurityMetric } from "../config/metrics.js";
 import { logSecurity } from "../config/logger.js";
+import { appendSecurityAuditLog } from "./auditLogService.js";
+import { recordRiskEvent } from "./riskScoringService.js";
 
 export const logSecurityEvent = (event, req, metadata = {}, level = "warn") => {
   incrementSecurityMetric(event);
+  recordRiskEvent({
+    eventType: event,
+    ip: req?.ip,
+    userId: req?.user?.id || metadata?.userId || null
+  });
+
+  appendSecurityAuditLog(event, req, metadata).catch(() => {});
+
   logSecurity(
     event,
     {
@@ -17,4 +27,3 @@ export const logSecurityEvent = (event, req, metadata = {}, level = "warn") => {
     level
   );
 };
-

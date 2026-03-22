@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import env from "../config/env.js";
 import { logSecurityEvent } from "../services/securityEventService.js";
+import { isRiskBlocked } from "../services/riskScoringService.js";
 import { ApiError } from "../utils/apiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { verifyAccessToken } from "../utils/jwt.js";
@@ -26,17 +27,24 @@ const getRequestToken = (req) => {
 const resolveAuthenticatedUser = async (req, token) => {
   try {
     const payload = verifyAccessToken(token);
-    const user = await User.findById(payload.sub).select("_id email role isActive");
+    const user = await User.findById(payload.sub).select("_id email role isActive emailVerified otpEnabled");
 
     if (!user || !user.isActive) {
       logSecurityEvent("invalid_token_user", req, { sub: payload.sub });
       throw new ApiError(401, "Invalid authentication context", "INVALID_TOKEN_CONTEXT");
     }
 
+    if (!user.emailVerified) {
+      logSecurityEvent("unverified_user_access_attempt", req, { sub: payload.sub });
+      throw new ApiError(403, "Email verification is required", "EMAIL_NOT_VERIFIED");
+    }
+
     req.user = {
       id: user.id,
       email: user.email,
-      role: user.role
+      role: user.role,
+      emailVerified: user.emailVerified,
+      otpEnabled: user.otpEnabled || user.role === "admin"
     };
   } catch (error) {
     if (error instanceof ApiError) {
@@ -55,6 +63,22 @@ export const requireAuth = asyncHandler(async (req, res, next) => {
   }
 
   await resolveAuthenticatedUser(req, token);
+
+  const userBlocked = isRiskBlocked({ ip: req.ip, userId: req.user.id });
+  const ipBlocked = isRiskBlocked({ ip: req.ip });
+  const blocked = userBlocked.blocked ? userBlocked : ipBlocked;
+
+  if (blocked.blocked) {
+    const scope = userBlocked.blocked ? "user" : "ip";
+    logSecurityEvent("risk_block_triggered", req, {
+      scope,
+      retryAfterSeconds: blocked.retryAfterSeconds
+    });
+    throw new ApiError(429, `Access temporarily blocked. Retry in ${blocked.retryAfterSeconds} seconds.`, "RISK_BLOCKED", {
+      retryAfterSeconds: blocked.retryAfterSeconds
+    });
+  }
+
   return next();
 });
 

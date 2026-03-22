@@ -32,6 +32,45 @@ const userSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true
+    },
+    emailVerified: {
+      type: Boolean,
+      default: false
+    },
+    emailVerifiedAt: {
+      type: Date,
+      default: null
+    },
+    otpEnabled: {
+      type: Boolean,
+      default: false
+    },
+    otpSecretEncrypted: {
+      type: String,
+      default: "",
+      select: false
+    },
+    otpTempSecretEncrypted: {
+      type: String,
+      default: "",
+      select: false
+    },
+    otpRecoveryCodes: {
+      type: [String],
+      default: [],
+      select: false
+    },
+    lastLoginAt: {
+      type: Date,
+      default: null
+    },
+    lastLoginIp: {
+      type: String,
+      default: null
+    },
+    lastLoginUserAgent: {
+      type: String,
+      default: null
     }
   },
   {
@@ -50,6 +89,8 @@ userSchema.methods.toSafeObject = function toSafeObject() {
     email: this.email,
     role: this.role,
     isActive: this.isActive,
+    emailVerified: this.emailVerified,
+    otpEnabled: this.otpEnabled || this.role === "admin",
     createdAt: this.createdAt,
     updatedAt: this.updatedAt
   };
@@ -57,4 +98,3 @@ userSchema.methods.toSafeObject = function toSafeObject() {
 
 const User = mongoose.model("User", userSchema);
 export default User;
-

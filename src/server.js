@@ -3,6 +3,7 @@ import connectDB from "./config/db.js";
 import env from "./config/env.js";
 import { appLogger } from "./config/logger.js";
 import { ensureDefaultAdmin } from "./services/authService.js";
+import { isSmtpConfigured } from "./services/emailService.js";
 
 const bootstrap = async () => {
   await connectDB();
@@ -12,6 +13,10 @@ const bootstrap = async () => {
     appLogger.info("Server started", {
       port: env.port,
       environment: env.nodeEnv
+    });
+
+    appLogger.info("Mail configuration status", {
+      smtpConfigured: isSmtpConfigured()
     });
   });
 

@@ -1,4 +1,4 @@
-import { body } from "express-validator";
+import { body, query } from "express-validator";
 
 export const registerValidation = [
   body("fullName")
@@ -23,3 +23,66 @@ export const loginValidation = [
   body("password").isString().notEmpty().withMessage("password is required")
 ];
 
+export const verifyEmailValidation = [query("token").isString().notEmpty().withMessage("token is required")];
+
+export const resendVerificationValidation = [body("email").trim().isEmail().withMessage("email must be valid").normalizeEmail()];
+
+export const verifyLoginOtpValidation = [
+  body("otpChallengeToken").isString().notEmpty().withMessage("otpChallengeToken is required"),
+  body("otpCode")
+    .optional()
+    .isString()
+    .matches(/^[0-9]{6}$/)
+    .withMessage("otpCode must be a 6-digit code"),
+  body("recoveryCode").optional().isString().isLength({ min: 6, max: 32 }).withMessage("recoveryCode is invalid"),
+  body().custom((value) => {
+    if (!value.otpCode && !value.recoveryCode) {
+      throw new Error("otpCode or recoveryCode is required");
+    }
+    return true;
+  })
+];
+
+export const startOtpEnrollmentValidation = [
+  body("challengeToken").optional().isString().notEmpty().withMessage("challengeToken cannot be empty")
+];
+
+export const verifyOtpEnrollmentValidation = [
+  body("challengeToken").optional().isString().notEmpty().withMessage("challengeToken cannot be empty"),
+  body("otpCode")
+    .isString()
+    .matches(/^[0-9]{6}$/)
+    .withMessage("otpCode must be a 6-digit code")
+];
+
+export const disableOtpValidation = [
+  body("currentPassword").isString().notEmpty().withMessage("currentPassword is required"),
+  body("otpCode")
+    .optional()
+    .isString()
+    .matches(/^[0-9]{6}$/)
+    .withMessage("otpCode must be a 6-digit code"),
+  body("recoveryCode").optional().isString().isLength({ min: 6, max: 32 }).withMessage("recoveryCode is invalid"),
+  body().custom((value) => {
+    if (!value.otpCode && !value.recoveryCode) {
+      throw new Error("otpCode or recoveryCode is required");
+    }
+    return true;
+  })
+];
+
+export const adminStepUpValidation = [
+  body("currentPassword").isString().notEmpty().withMessage("currentPassword is required"),
+  body("otpCode")
+    .optional()
+    .isString()
+    .matches(/^[0-9]{6}$/)
+    .withMessage("otpCode must be a 6-digit code"),
+  body("recoveryCode").optional().isString().isLength({ min: 6, max: 32 }).withMessage("recoveryCode is invalid"),
+  body().custom((value) => {
+    if (!value.otpCode && !value.recoveryCode) {
+      throw new Error("otpCode or recoveryCode is required");
+    }
+    return true;
+  })
+];

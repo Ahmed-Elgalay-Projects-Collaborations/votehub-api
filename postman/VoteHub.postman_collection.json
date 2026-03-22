@@ -1,9 +1,9 @@
 {
   "info": {
-    "_postman_id": "2d2937d6-b902-4af5-8e7f-c7834ff7dd8d",
-    "name": "VoteHub API (Cookie Auth)",
+    "_postman_id": "d93a34ca-685b-4f31-bef5-49804d9548b1",
+    "name": "VoteHub API (Cookie + Advanced Security)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "VoteHub API collection configured for HttpOnly cookie authentication and CSRF token header usage."
+    "description": "VoteHub API collection with cookie auth, CSRF, OTP, admin step-up, audit verification, and vote receipt verification."
   },
   "item": [
     {
@@ -50,20 +50,6 @@
       "item": [
         {
           "name": "Register",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const json = pm.response.json();",
-                  "if (json?.data?.csrfToken) {",
-                  "  pm.collectionVariables.set('csrfToken', json.data.csrfToken);",
-                  "}"
-                ]
-              }
-            }
-          ],
           "request": {
             "method": "POST",
             "header": [
@@ -74,7 +60,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Test Voter\",\n  \"email\": \"voter@example.com\",\n  \"password\": \"VoteHub123\"\n}"
+              "raw": "{\n  \"fullName\": \"Test User\",\n  \"email\": \"user@example.com\",\n  \"password\": \"VoteHub123\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/register",
@@ -91,7 +77,60 @@
           }
         },
         {
-          "name": "Login",
+          "name": "Resend Verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/resend-verification",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "resend-verification"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verify Email by Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/verify-email?token={{verificationToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "verify-email"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{verificationToken}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login (Password Step)",
           "event": [
             {
               "listen": "test",
@@ -99,6 +138,9 @@
                 "type": "text/javascript",
                 "exec": [
                   "const json = pm.response.json();",
+                  "if (json?.data?.otpChallengeToken) {",
+                  "  pm.collectionVariables.set('otpChallengeToken', json.data.otpChallengeToken);",
+                  "}",
                   "if (json?.data?.csrfToken) {",
                   "  pm.collectionVariables.set('csrfToken', json.data.csrfToken);",
                   "}"
@@ -116,7 +158,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"voter@example.com\",\n  \"password\": \"VoteHub123\"\n}"
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"VoteHub123\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/login",
@@ -133,12 +175,36 @@
           }
         },
         {
-          "name": "Me",
+          "name": "Verify Login OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.csrfToken) {",
+                  "  pm.collectionVariables.set('csrfToken', json.data.csrfToken);",
+                  "}",
+                  "pm.collectionVariables.unset('otpChallengeToken');"
+                ]
+              }
+            }
+          ],
           "request": {
-            "method": "GET",
-            "header": [],
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"otpChallengeToken\": \"{{otpChallengeToken}}\",\n  \"otpCode\": \"{{otpCode}}\"\n}"
+            },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "raw": "{{baseUrl}}/api/v1/auth/otp/verify-login",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -146,7 +212,195 @@
                 "api",
                 "v1",
                 "auth",
-                "me"
+                "otp",
+                "verify-login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Start OTP Enrollment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeToken\": \"{{otpChallengeToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/otp/setup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "otp",
+                "setup"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verify OTP Enrollment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.csrfToken) {",
+                  "  pm.collectionVariables.set('csrfToken', json.data.csrfToken);",
+                  "}",
+                  "pm.collectionVariables.unset('otpChallengeToken');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeToken\": \"{{otpChallengeToken}}\",\n  \"otpCode\": \"{{otpCode}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/otp/verify-setup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "otp",
+                "verify-setup"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Step-Up",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.stepUpToken) {",
+                  "  pm.collectionVariables.set('adminStepUpToken', json.data.stepUpToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"VoteHub123\",\n  \"otpCode\": \"{{otpCode}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/admin/step-up",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "admin",
+                "step-up"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verify Audit Chain (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Admin-Step-Up-Token",
+                "value": "{{adminStepUpToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/admin/audit/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "admin",
+                "audit",
+                "verify"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Disable OTP (Non-admin only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"VoteHub123\",\n  \"otpCode\": \"{{otpCode}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/otp/disable",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "otp",
+                "disable"
               ]
             }
           }
@@ -185,6 +439,25 @@
           }
         },
         {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me"
+              ]
+            }
+          }
+        },
+        {
           "name": "Logout",
           "event": [
             {
@@ -192,7 +465,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.collectionVariables.unset('csrfToken');"
+                  "pm.collectionVariables.unset('csrfToken');",
+                  "pm.collectionVariables.unset('adminStepUpToken');"
                 ]
               }
             }
@@ -257,9 +531,6 @@
                   "  if (Array.isArray(election.options) && election.options.length > 0) {",
                   "    pm.collectionVariables.set('optionId', election.options[0].id || election.options[0]._id);",
                   "  }",
-                  "  if (Array.isArray(election.options) && election.options.length > 1) {",
-                  "    pm.collectionVariables.set('optionId2', election.options[1].id || election.options[1]._id);",
-                  "  }",
                   "}"
                 ]
               }
@@ -275,11 +546,15 @@
               {
                 "key": "X-CSRF-Token",
                 "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Admin-Step-Up-Token",
+                "value": "{{adminStepUpToken}}"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Student Council Election\",\n  \"description\": \"Annual student council vote\",\n  \"type\": \"election\",\n  \"options\": [\n    {\n      \"label\": \"Candidate A\",\n      \"description\": \"Platform A\"\n    },\n    {\n      \"label\": \"Candidate B\",\n      \"description\": \"Platform B\"\n    }\n  ],\n  \"startsAt\": \"2030-01-01T00:00:00.000Z\",\n  \"endsAt\": \"2030-12-31T23:59:59.000Z\",\n  \"maxSelections\": 1,\n  \"resultsVisibility\": \"after_close\"\n}"
+              "raw": "{\n  \"title\": \"Student Council Election\",\n  \"description\": \"Annual student council vote\",\n  \"type\": \"election\",\n  \"options\": [\n    {\n      \"label\": \"Candidate A\",\n      \"description\": \"Platform A\"\n    },\n    {\n      \"label\": \"Candidate B\",\n      \"description\": \"Platform B\"\n    }\n  ],\n  \"startsAt\": \"2025-01-01T00:00:00.000Z\",\n  \"endsAt\": \"2030-12-31T23:59:59.000Z\",\n  \"maxSelections\": 1,\n  \"resultsVisibility\": \"after_close\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/elections",
@@ -325,6 +600,10 @@
               {
                 "key": "X-CSRF-Token",
                 "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Admin-Step-Up-Token",
+                "value": "{{adminStepUpToken}}"
               }
             ],
             "body": {
@@ -346,6 +625,43 @@
           }
         },
         {
+          "name": "Set Election Status = Published (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Admin-Step-Up-Token",
+                "value": "{{adminStepUpToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"published\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/elections/{{electionId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "elections",
+                "{{electionId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
           "name": "Set Election Status = Open (Admin)",
           "request": {
             "method": "PATCH",
@@ -357,6 +673,10 @@
               {
                 "key": "X-CSRF-Token",
                 "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Admin-Step-Up-Token",
+                "value": "{{adminStepUpToken}}"
               }
             ],
             "body": {
@@ -380,6 +700,20 @@
         },
         {
           "name": "Cast Vote",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.receipt) {",
+                  "  pm.collectionVariables.set('voteReceipt', JSON.stringify(json.data.receipt));",
+                  "}"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -390,6 +724,10 @@
               {
                 "key": "X-CSRF-Token",
                 "value": "{{csrfToken}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKey}}"
               }
             ],
             "body": {
@@ -439,6 +777,10 @@
               {
                 "key": "X-CSRF-Token",
                 "value": "{{csrfToken}}"
+              },
+              {
+                "key": "X-Admin-Step-Up-Token",
+                "value": "{{adminStepUpToken}}"
               }
             ],
             "url": {
@@ -480,10 +822,48 @@
           }
         },
         {
+          "name": "Verify Vote Receipt",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"receipt\": {{voteReceipt}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/votes/receipts/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "votes",
+                "receipts",
+                "verify"
+              ]
+            }
+          }
+        },
+        {
           "name": "Votes by Election (Admin)",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "X-Admin-Step-Up-Token",
+                "value": "{{adminStepUpToken}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/votes/elections/{{electionId}}",
               "host": [
@@ -512,6 +892,26 @@
       "value": ""
     },
     {
+      "key": "verificationToken",
+      "value": ""
+    },
+    {
+      "key": "otpChallengeToken",
+      "value": ""
+    },
+    {
+      "key": "otpCode",
+      "value": ""
+    },
+    {
+      "key": "recoveryCode",
+      "value": ""
+    },
+    {
+      "key": "adminStepUpToken",
+      "value": ""
+    },
+    {
       "key": "electionId",
       "value": ""
     },
@@ -520,9 +920,12 @@
       "value": ""
     },
     {
-      "key": "optionId2",
-      "value": ""
+      "key": "voteReceipt",
+      "value": "{}"
+    },
+    {
+      "key": "idempotencyKey",
+      "value": "vote-1"
     }
   ]
 }
-

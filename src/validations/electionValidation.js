@@ -55,6 +55,7 @@ export const updateElectionValidation = [
 ];
 
 export const changeElectionStatusValidation = [
-  body("status").isIn(["draft", "open", "closed", "archived"]).withMessage("status must be draft, open, closed, or archived")
+  body("status")
+    .isIn(["draft", "published", "open", "closed", "archived"])
+    .withMessage("status must be draft, published, open, closed, or archived")
 ];
-

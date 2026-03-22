@@ -3,7 +3,13 @@ import { logSecurityEvent } from "../services/securityEventService.js";
 import { ApiError } from "../utils/apiError.js";
 
 const STATE_CHANGING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
-const CSRF_EXEMPT_PATHS = new Set(["/api/v1/auth/login", "/api/v1/auth/register"]);
+const CSRF_EXEMPT_PATHS = new Set([
+  "/api/v1/auth/login",
+  "/api/v1/auth/register",
+  "/api/v1/auth/resend-verification",
+  "/api/v1/auth/otp/verify-login"
+]);
+const CHALLENGE_FLOW_PATHS = new Set(["/api/v1/auth/otp/setup", "/api/v1/auth/otp/verify-setup"]);
 
 const normalizePath = (path = "") => (path.endsWith("/") && path.length > 1 ? path.slice(0, -1) : path);
 
@@ -53,6 +59,10 @@ export const csrfHardeningMiddleware = (req, res, next) => {
   }
 
   if (CSRF_EXEMPT_PATHS.has(normalizePath(req.path))) {
+    return next();
+  }
+
+  if (CHALLENGE_FLOW_PATHS.has(normalizePath(req.path)) && req.body?.challengeToken) {
     return next();
   }
 
