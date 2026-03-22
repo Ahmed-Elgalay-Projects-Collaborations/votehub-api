@@ -1,0 +1,37 @@
+services:
+  api:
+    build:
+      context: .
+      target: development
+    command: npm run dev -- --legacy-watch
+    env_file:
+      - .env
+    ports:
+      - "${PORT:-3100}:3100"
+    environment:
+      NODE_ENV: development
+      MONGO_URI: ${MONGO_URI_DOCKER:-mongodb://mongo:27017/votehub}
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-votehub}
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  mongo_data:

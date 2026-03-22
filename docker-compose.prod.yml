@@ -1,0 +1,9 @@
+services:
+  api:
+    build:
+      context: .
+      target: production
+    env_file:
+      - .env
+    ports:
+      - "${PORT:-3100}:3100"
