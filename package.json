@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "nodemon --watch src --watch .env --ext js,mjs,json,env src/server.js",
     "start": "node src/server.js",
-    "check": "node --check src/server.js"
+    "check": "node --check src/server.js",
+    "test": "mocha --file tests/setup/bootstrap.js --timeout 120000 --exit \"tests/**/*.test.js\"",
+    "test:watch": "mocha --file tests/setup/bootstrap.js --timeout 120000 --watch \"tests/**/*.test.js\""
   },
   "repository": {
     "type": "git",
@@ -46,6 +48,15 @@
     "xss": "^1.0.15"
   },
   "devDependencies": {
-    "nodemon": "^3.1.9"
+    "chai": "^5.2.0",
+    "mocha": "^11.1.0",
+    "mongodb-memory-server": "^10.1.4",
+    "nodemon": "^3.1.9",
+    "supertest": "^7.1.0"
+  },
+  "overrides": {
+    "diff": "^8.0.3",
+    "serialize-javascript": "^7.0.3",
+    "lodash": "4.17.23"
   }
 }
