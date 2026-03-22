@@ -1,0 +1,9 @@
+title = "VoteHub API - gitleaks config"
+
+[allowlist]
+description = "Allow example env files that contain placeholder secrets"
+paths = [
+  '''\.env\.example$''',
+  '''\.env$'''
+]
+
