@@ -14,6 +14,16 @@ Secure monolithic Node.js + Express + MongoDB backend for VoteHub.
    npm run dev
    ```
 
+## Docker (API + Web + Mongo)
+
+If you have `votehub-api` and `votehub-web` cloned as sibling folders, you can run the full stack from this repo:
+
+```bash
+docker compose -f docker-compose.stack.yml up --build
+```
+
+- Web: `http://localhost:5173` (API is reached via Vite proxy, not exposed to host)
+
 ## Core API prefixes
 
 - `GET /api/v1/health`

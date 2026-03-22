@@ -1,0 +1,86 @@
+services:
+  mongo:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASS:-root_password_change_me}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-votehub}
+      MONGO_APP_USER: ${MONGO_APP_USER:-votehub}
+      MONGO_APP_PASS: ${MONGO_APP_PASS:-votehub_password_change_me}
+    volumes:
+      - mongo_data:/data/db
+      - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--username",
+          "${MONGO_ROOT_USER:-root}",
+          "--password",
+          "${MONGO_ROOT_PASS:-root_password_change_me}",
+          "--authenticationDatabase",
+          "admin",
+          "--eval",
+          "db.adminCommand('ping')"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - backend
+
+  api:
+    build:
+      context: .
+      target: development
+    environment:
+      NODE_ENV: development
+      PORT: 3100
+      MONGO_URI: mongodb://${MONGO_APP_USER:-votehub}:${MONGO_APP_PASS:-votehub_password_change_me}@mongo:27017/${MONGO_DB_NAME:-votehub}?authSource=${MONGO_DB_NAME:-votehub}
+      CLIENT_URL: http://localhost:5173
+      CORS_ORIGINS: http://localhost:5173
+      COOKIE_SECURE: "false"
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3100/api/v1/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - backend
+      - frontend
+
+  web:
+    build:
+      context: ../votehub-web
+      target: development
+    ports:
+      - "5173:5173"
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      VITE_PROXY_TARGET: http://api:3100
+    volumes:
+      - ../votehub-web:/app
+      - /app/node_modules
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - frontend
+
+volumes:
+  mongo_data:
+
+networks:
+  backend:
+    internal: true
+  frontend:
+
