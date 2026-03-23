@@ -24,6 +24,30 @@ docker compose -f docker-compose.stack.yml up --build
 
 - Web: `http://localhost:5173` (API is reached via Vite proxy, not exposed to host)
 
+## Testing
+
+Functional/API tests are implemented with:
+- `mocha` (test runner)
+- `supertest` (HTTP assertions for Express routes)
+- `chai` (assertions)
+- `mongodb-memory-server` (isolated in-memory MongoDB for deterministic integration tests)
+
+Run tests:
+```bash
+npm install
+npm test
+```
+
+Watch mode:
+```bash
+npm run test:watch
+```
+
+Notes:
+- Tests run against an isolated in-memory database and do not require your development Mongo instance.
+- No production SMTP/services are required for tests.
+- On first run, `mongodb-memory-server` may download MongoDB binaries depending on your environment/CI cache.
+
 ## Core API prefixes
 
 - `GET /api/v1/health`
