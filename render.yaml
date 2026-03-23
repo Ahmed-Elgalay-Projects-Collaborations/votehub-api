@@ -1,0 +1,93 @@
+services:
+  - name: mongo
+    type: pserv
+    runtime: docker
+    dockerfilePath: ./docker/mongo.Dockerfile
+    dockerContext: .
+    envVars:
+      - key: MONGO_INITDB_ROOT_USERNAME
+        value: root
+      - key: MONGO_INITDB_ROOT_PASSWORD
+        generateValue: true
+      - key: MONGO_INITDB_DATABASE
+        value: votehub
+      - key: MONGO_APP_USER
+        value: votehub
+      - key: MONGO_APP_PASS
+        sync: false
+      - key: PORT
+        value: 27017
+    disk:
+      name: mongo-data
+      mountPath: /data/db
+      sizeGB: 10
+
+  - name: api
+    type: pserv
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3100
+
+      - key: ENABLE_METRICS
+        value: "true"
+      - key: METRICS_REQUIRE_AUTH
+        value: "true"
+      - key: METRICS_TOKEN
+        generateValue: true
+
+      - key: LOG_TO_CONSOLE
+        value: "true"
+      - key: LOG_TO_FILE
+        value: "false"
+
+      - key: JWT_SECRET
+        generateValue: true
+      - key: OTP_ENCRYPTION_KEY
+        generateValue: true
+      - key: VOTE_ENCRYPTION_KEY
+        generateValue: true
+      - key: AUDIT_SIGNING_KEY
+        generateValue: true
+      - key: RECEIPT_SIGNING_KEY
+        generateValue: true
+      - key: AUDIT_SALT
+        generateValue: true
+
+      - key: DEFAULT_ADMIN_EMAIL
+        sync: false
+      - key: DEFAULT_ADMIN_PASSWORD
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+      - key: API_BASE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: COOKIE_SAMESITE
+        value: lax
+
+      - key: MONGO_URI
+        sync: false
+
+  - name: nginx
+    type: web
+    runtime: docker
+    dockerfilePath: ./nginx/Dockerfile
+    dockerContext: .
+    healthCheckPath: /nginx-health
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: API_UPSTREAM
+        fromService:
+          name: api
+          type: pserv
+          property: hostport

@@ -41,7 +41,24 @@ app.use(csrfHardeningMiddleware);
 app.use("/api", apiRateLimiter);
 
 if (env.enableMetrics) {
-  app.get("/metrics", metricsRouteHandler);
+  app.get("/metrics", (req, res, next) => {
+    if (!env.metricsRequireAuth) {
+      return next();
+    }
+
+    const authorization = req.get("authorization") || "";
+    const token = authorization.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : "";
+
+    if (!token) {
+      return res.status(401).send("Unauthorized");
+    }
+
+    if (token !== env.metricsToken) {
+      return res.status(403).send("Forbidden");
+    }
+
+    return next();
+  }, metricsRouteHandler);
 }
 
 app.use("/api/v1", routes);

@@ -11,6 +11,7 @@ EXPOSE 3100
 CMD ["npm", "run", "dev"]
 
 FROM base AS production
+RUN apk add --no-cache su-exec
 RUN npm ci --omit=dev
 COPY src ./src
 RUN mkdir -p logs && chown -R node:node /usr/src/app

@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: votehub-api-smoke-test
+  namespace: votehub
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: curl
+          image: curlimages/curl:8.7.1
+          command:
+            - sh
+            - -ec
+            - >
+              echo "Checking api...";
+              curl -fsS http://api:3100/api/v1/health;
+

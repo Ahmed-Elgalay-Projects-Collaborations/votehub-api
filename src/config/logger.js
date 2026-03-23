@@ -1,13 +1,24 @@
 import fs from "fs";
 import path from "path";
 import { createLogger, format, transports } from "winston";
-import env from "./env.js";
 import { redactSensitiveData } from "../utils/redact.js";
 
 const { combine, timestamp, errors, json, colorize, printf } = format;
 
-const logDirectory = path.resolve(process.cwd(), env.logDir);
-if (!fs.existsSync(logDirectory)) {
+const parseBoolean = (value, defaultValue = false) => {
+  if (value === undefined) {
+    return defaultValue;
+  }
+  return ["true", "1", "yes", "on"].includes(String(value).toLowerCase());
+};
+
+const nodeEnv = process.env.NODE_ENV || "development";
+const logDir = process.env.LOG_DIR || "logs";
+const logToConsole = parseBoolean(process.env.LOG_TO_CONSOLE, true);
+const logToFile = parseBoolean(process.env.LOG_TO_FILE, true);
+
+const logDirectory = path.resolve(process.cwd(), logDir);
+if (logToFile && !fs.existsSync(logDirectory)) {
   fs.mkdirSync(logDirectory, { recursive: true });
 }
 
@@ -19,17 +30,32 @@ const devFormat = combine(
 
 const jsonFormat = combine(timestamp(), errors({ stack: true }), json());
 
-const buildLogger = (defaultMeta = {}, extraTransports = []) =>
-  createLogger({
-    level: env.nodeEnv === "production" ? "info" : "debug",
+const buildConsoleTransport = () =>
+  new transports.Console({
+    format: nodeEnv === "production" ? jsonFormat : devFormat
+  });
+
+const buildLogger = (defaultMeta = {}, extraTransports = []) => {
+  const configuredTransports = [...extraTransports];
+
+  if (logToFile) {
+    configuredTransports.unshift(
+      new transports.File({ filename: path.join(logDirectory, "application-error.log"), level: "error" }),
+      new transports.File({ filename: path.join(logDirectory, "application-combined.log") })
+    );
+  }
+
+  if (logToConsole) {
+    configuredTransports.push(buildConsoleTransport());
+  }
+
+  return createLogger({
+    level: nodeEnv === "production" ? "info" : "debug",
     defaultMeta,
     format: jsonFormat,
-    transports: [
-      new transports.File({ filename: path.join(logDirectory, "application-error.log"), level: "error" }),
-      new transports.File({ filename: path.join(logDirectory, "application-combined.log") }),
-      ...extraTransports
-    ]
+    transports: configuredTransports
   });
+};
 
 export const appLogger = buildLogger({ source: "application" });
 
@@ -37,13 +63,11 @@ export const securityLogger = createLogger({
   level: "info",
   defaultMeta: { source: "security" },
   format: jsonFormat,
-  transports: [new transports.File({ filename: path.join(logDirectory, "security.log") })]
+  transports: [
+    ...(logToFile ? [new transports.File({ filename: path.join(logDirectory, "security.log") })] : []),
+    ...(logToConsole ? [buildConsoleTransport()] : [])
+  ]
 });
-
-if (env.nodeEnv !== "production") {
-  appLogger.add(new transports.Console({ format: devFormat }));
-  securityLogger.add(new transports.Console({ format: devFormat }));
-}
 
 export const logAppError = (message, metadata = {}) => {
   appLogger.error(message, redactSensitiveData(metadata));
