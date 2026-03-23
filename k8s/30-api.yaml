@@ -6,13 +6,14 @@ metadata:
 data:
   NODE_ENV: "production"
   PORT: "3100"
+  TRUST_PROXY: "2"
   ENABLE_METRICS: "true"
   METRICS_REQUIRE_AUTH: "true"
   LOG_TO_CONSOLE: "true"
   LOG_TO_FILE: "false"
-  CLIENT_URL: "https://votehub.example"
-  API_BASE_URL: "https://votehub.example"
-  CORS_ORIGINS: "https://votehub.example"
+  CLIENT_URL: "https://app.votehub.example"
+  API_BASE_URL: "https://api.votehub.example"
+  CORS_ORIGINS: "https://app.votehub.example"
   COOKIE_SECURE: "true"
   COOKIE_SAMESITE: "lax"
 ---
@@ -225,7 +226,8 @@ spec:
               memory: "256Mi"
 
         - name: api
-          image: votehub-api:latest
+          image: your-acr-name.azurecr.io/votehub-api:v1
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3100
               name: node
@@ -337,4 +339,3 @@ spec:
     - name: http
       port: 3100
       targetPort: 8080
-

@@ -129,8 +129,8 @@ spec:
         name: mongo-data
       spec:
         accessModes: ["ReadWriteOnce"]
+        storageClassName: managed-csi-premium
         # Use an encrypted StorageClass/PV (provider-managed) for encryption-at-rest.
         resources:
           requests:
             storage: 10Gi
-

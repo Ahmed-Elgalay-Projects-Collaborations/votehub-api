@@ -52,6 +52,30 @@ const parseSameSite = (value) => {
   return "lax";
 };
 
+const parseTrustProxy = (value, defaultValue = 1) => {
+  if (value === undefined) {
+    return defaultValue;
+  }
+
+  const normalized = String(value).trim();
+
+  if (!normalized) {
+    return defaultValue;
+  }
+
+  const lowered = normalized.toLowerCase();
+
+  if (["true", "false"].includes(lowered)) {
+    return lowered === "true";
+  }
+
+  if (/^\d+$/.test(normalized)) {
+    return Number(normalized);
+  }
+
+  return normalized;
+};
+
 const env = {
   nodeEnv: process.env.NODE_ENV || "development",
   port: Number(process.env.PORT) || 3100,
@@ -72,7 +96,7 @@ const env = {
   auditSalt: getSecret("AUDIT_SALT", ""),
 
   // Client / CORS
-  clientUrl: process.env.CLIENT_URL || "http://localhost:3000",
+  clientUrl: process.env.CLIENT_URL,
   apiBaseUrl: process.env.API_BASE_URL || `http://localhost:${Number(process.env.PORT) || 3100}`,
   corsOrigins: parseOrigins(process.env.CORS_ORIGINS || process.env.CLIENT_URL || "http://localhost:3000"),
 
@@ -91,12 +115,13 @@ const env = {
   metricsToken: getSecret("METRICS_TOKEN", ""),
 
   // Logging
-  logDir: process.env.LOG_DIR || "logs",
+  logDir: process.env.LOG_DIR ,
   logToConsole: parseBoolean(process.env.LOG_TO_CONSOLE, true),
   logToFile: parseBoolean(process.env.LOG_TO_FILE, true),
 
   // Request handling
   bodyLimit: process.env.BODY_LIMIT || "100kb",
+  trustProxy: parseTrustProxy(process.env.TRUST_PROXY, 1),
 
   // Rate limiting
   apiRateLimitWindowMs: Number(process.env.API_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,

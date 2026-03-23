@@ -6,14 +6,7 @@ const attemptsByKey = new Map();
 
 const normalizeEmail = (email = "") => String(email || "").trim().toLowerCase();
 
-const getClientIp = (req) => {
-  const forwardedFor = req.headers["x-forwarded-for"];
-  if (typeof forwardedFor === "string" && forwardedFor.length > 0) {
-    return forwardedFor.split(",")[0].trim();
-  }
-
-  return req.ip || "unknown-ip";
-};
+const getClientIp = (req) => req.ip || "unknown-ip";
 
 const buildAttemptKey = (ip, email = "*") => `${ip}:${email || "*"}`;
 
