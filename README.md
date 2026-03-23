@@ -2,6 +2,25 @@
 
 Secure monolithic Node.js + Express + MongoDB backend for VoteHub.
 
+## Production Deployment (DigitalOcean + Atlas)
+
+Use the dedicated runbook:
+
+- [`DEPLOYMENT_DIGITALOCEAN_ATLAS.md`](./DEPLOYMENT_DIGITALOCEAN_ATLAS.md)
+
+It covers:
+- backend + frontend deployment flow on DigitalOcean
+- MongoDB Atlas setup and hardening
+- required production environment variables and secrets
+- HTTPS / reverse proxy / metrics / logging expectations
+- scaling caveats and disaster recovery checklist
+
+Monitoring files for Prometheus + Alertmanager:
+- [`monitoring/`](./monitoring)
+
+Kubernetes (DOKS) manifests:
+- [`k8s/digitalocean/`](./k8s/digitalocean)
+
 ## Run locally
 
 1. Copy `.env.example` to `.env` and fill secrets.
@@ -122,6 +141,8 @@ Notes:
 ## Core API prefixes
 
 - `GET /api/v1/health`
+- `GET /api/v1/health/live`
+- `GET /api/v1/health/ready`
 - `POST /api/v1/auth/register`
 - `GET /api/v1/auth/verify-email`
 - `POST /api/v1/auth/resend-verification`

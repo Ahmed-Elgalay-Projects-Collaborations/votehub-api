@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - 00-namespace.yaml
+  - 10-api-configmap.yaml
+  - 20-api-deployment.yaml
+  - 30-api-service.yaml
+  - 40-api-hpa.yaml
+  - 41-api-pdb.yaml
+  - 50-prometheus-configmap.yaml
+  - 51-prometheus-deployment.yaml
+  - 52-prometheus-service.yaml
+  - 53-prometheus-pvc.yaml
+  - 60-alertmanager-configmap.yaml
+  - 61-alertmanager-deployment.yaml
+  - 62-alertmanager-service.yaml
+  - 63-alertmanager-pvc.yaml

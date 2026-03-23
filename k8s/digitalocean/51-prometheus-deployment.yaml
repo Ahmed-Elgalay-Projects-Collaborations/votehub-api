@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: votehub
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: votehub-prometheus
+  template:
+    metadata:
+      labels:
+        app: votehub-prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.55.1
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+          ports:
+            - containerPort: 9090
+              name: http
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus/prometheus.yml
+              subPath: prometheus.yml
+              readOnly: true
+            - name: config
+              mountPath: /etc/prometheus/alerts.yml
+              subPath: alerts.yml
+              readOnly: true
+            - name: metrics-token
+              mountPath: /etc/prometheus/secrets
+              readOnly: true
+            - name: data
+              mountPath: /prometheus
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+      volumes:
+        - name: config
+          configMap:
+            name: votehub-prometheus-config
+        - name: metrics-token
+          secret:
+            secretName: votehub-monitoring-secrets
+            items:
+              - key: metrics_token
+                path: metrics_token
+        - name: data
+          persistentVolumeClaim:
+            claimName: prometheus-data

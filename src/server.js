@@ -1,5 +1,5 @@
 import app from "./app.js";
-import connectDB from "./config/db.js";
+import connectDB, { disconnectDB } from "./config/db.js";
 import env from "./config/env.js";
 import { appLogger } from "./config/logger.js";
 import { ensureDefaultAdmin } from "./services/authService.js";
@@ -20,16 +20,34 @@ const bootstrap = async () => {
     });
   });
 
-  const shutdown = (signal) => {
+  let shuttingDown = false;
+  const shutdown = async (signal) => {
+    if (shuttingDown) {
+      return;
+    }
+    shuttingDown = true;
+
     appLogger.info("Shutdown signal received", { signal });
-    server.close(() => {
+    server.close(async () => {
       appLogger.info("HTTP server closed");
-      process.exit(0);
+      try {
+        await disconnectDB();
+      } catch (error) {
+        appLogger.error("Error while closing database connection during shutdown", {
+          message: error.message
+        });
+      } finally {
+        process.exit(0);
+      }
     });
   };
 
-  process.on("SIGINT", () => shutdown("SIGINT"));
-  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => {
+    shutdown("SIGINT").catch(() => process.exit(1));
+  });
+  process.on("SIGTERM", () => {
+    shutdown("SIGTERM").catch(() => process.exit(1));
+  });
 };
 
 bootstrap().catch((error) => {

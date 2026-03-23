@@ -3,7 +3,7 @@ services:
     build:
       context: .
       target: development
-    command: npm run dev -- --legacy-watch
+    command: sh /usr/src/app/docker/dev-entrypoint.sh
     ports:
       - "${PORT:-3100}:3100"
     environment:

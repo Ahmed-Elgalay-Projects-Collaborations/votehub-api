@@ -71,7 +71,12 @@ web_modules/
 !.env.example
 k8s/secrets/*.env
 !k8s/secrets/*.example.env
+k8s/digitalocean/secrets/*.env
+!k8s/digitalocean/secrets/*.example.env
 k8s/tmp-tls/*
+monitoring/secrets/*
+!monitoring/secrets/.gitkeep
+!monitoring/secrets/metrics_token.example
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache

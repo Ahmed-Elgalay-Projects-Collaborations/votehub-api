@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: votehub-api-config
+  namespace: votehub
+data:
+  NODE_ENV: "production"
+  PORT: "3100"
+  TRUST_PROXY: "1"
+
+  CLIENT_URL: "https://votehub.example.com"
+  API_BASE_URL: "https://votehub.example.com/api/v1"
+  CORS_ORIGINS: "https://votehub.example.com"
+
+  ENABLE_COOKIE_AUTH: "true"
+  COOKIE_SECURE: "true"
+  COOKIE_SAMESITE: "lax"
+  AUTH_COOKIE_NAME: "votehub_access_token"
+  CSRF_COOKIE_NAME: "votehub_csrf_token"
+
+  ENABLE_METRICS: "true"
+  METRICS_REQUIRE_AUTH: "true"
+
+  LOG_TO_CONSOLE: "true"
+  LOG_TO_FILE: "false"
+
+  BODY_LIMIT: "100kb"
+  API_RATE_LIMIT_WINDOW_MS: "900000"
+  API_RATE_LIMIT_MAX: "200"

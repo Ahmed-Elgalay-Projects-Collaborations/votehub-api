@@ -31,6 +31,14 @@ const parseBoolean = (value, defaultValue = false) => {
   return ["true", "1", "yes", "on"].includes(String(value).toLowerCase());
 };
 
+const parseNumber = (value, defaultValue) => {
+  const parsed = Number(value);
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return parsed;
+  }
+  return defaultValue;
+};
+
 const parseOrigins = (value) => {
   if (!value) {
     return [];
@@ -82,6 +90,10 @@ const env = {
 
   // Database
   mongoUri: getSecret("MONGO_URI", isProduction ? "" : "mongodb://localhost:27017/votehub"),
+  mongoServerSelectionTimeoutMs: parseNumber(process.env.MONGO_SERVER_SELECTION_TIMEOUT_MS, isProduction ? 10_000 : 5_000),
+  mongoSocketTimeoutMs: parseNumber(process.env.MONGO_SOCKET_TIMEOUT_MS, 45_000),
+  mongoMaxPoolSize: parseNumber(process.env.MONGO_MAX_POOL_SIZE, 20),
+  mongoMinPoolSize: parseNumber(process.env.MONGO_MIN_POOL_SIZE, isProduction ? 2 : 0),
 
   // Auth / crypto
   jwtSecret: getSecret("JWT_SECRET", isProduction ? "" : "dev_only_change_me_votehub"),
@@ -161,6 +173,9 @@ if (isProduction) {
       "MONGO_URI must be set in production. If you're running with `docker run`, pass env vars explicitly (e.g. `--env-file .env`) and make sure MONGO_URI points to a reachable MongoDB host (inside Docker: use `host.docker.internal` or a Docker network hostname, not `localhost`)."
     );
   }
+  if (!/^mongodb(\+srv)?:\/\//i.test(env.mongoUri)) {
+    throw new Error("MONGO_URI must be a valid MongoDB connection string (mongodb:// or mongodb+srv://).");
+  }
   if (!env.jwtSecret || env.jwtSecret.length < 32) {
     throw new Error("JWT_SECRET must be set in production and be at least 32 characters long.");
   }
@@ -173,8 +188,8 @@ if (isProduction) {
   if (!env.otpEncryptionKey) {
     throw new Error("OTP_ENCRYPTION_KEY must be set in production.");
   }
-  if (!env.voteEncryptionKey && !env.otpEncryptionKey) {
-    throw new Error("VOTE_ENCRYPTION_KEY or OTP_ENCRYPTION_KEY must be set in production.");
+  if (!env.voteEncryptionKey) {
+    throw new Error("VOTE_ENCRYPTION_KEY must be set in production.");
   }
   if (!env.auditSigningKey || env.auditSigningKey.length < 32) {
     throw new Error("AUDIT_SIGNING_KEY must be set in production and be at least 32 characters.");
