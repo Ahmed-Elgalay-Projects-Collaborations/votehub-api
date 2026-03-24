@@ -128,6 +128,18 @@ jobs:
           echo "$DOKS_KUBECONFIG_B64" | base64 --decode > "$HOME/.kube/config"
           chmod 600 "$HOME/.kube/config"
 
+      - name: Regenerate kubeconfig with short-lived DOKS credentials
+        shell: bash
+        run: |
+          SERVER_URL="$(kubectl config view --raw --minify -o jsonpath='{.clusters[0].cluster.server}')"
+          CLUSTER_ID="$(echo "$SERVER_URL" | sed -E 's#https://([^.]+)\.k8s\.ondigitalocean\.com.*#\1#')"
+          if ! [[ "$CLUSTER_ID" =~ ^[0-9a-fA-F-]{36}$ ]]; then
+            echo "Failed to derive a valid DOKS cluster ID from server URL: $SERVER_URL"
+            exit 1
+          fi
+          doctl kubernetes cluster kubeconfig show "$CLUSTER_ID" --expiry-seconds 900 > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
       - name: Normalize kubeconfig exec command
         shell: bash
         run: |
