@@ -82,7 +82,7 @@ jobs:
     needs: build
     environment: production
     env:
-      DO_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
     permissions:
       contents: read
     steps:
@@ -95,12 +95,10 @@ jobs:
           version: "v1.30.0"
 
       - name: Setup doctl (optional for exec-plugin kubeconfig)
-        if: ${{ env.DO_ACCESS_TOKEN != '' }}
+        if: ${{ env.DIGITALOCEAN_ACCESS_TOKEN != '' }}
         uses: digitalocean/action-doctl@v2
-        env:
-          DO_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
         with:
-          token: ${{ env.DO_ACCESS_TOKEN }}
+          token: ${{ env.DIGITALOCEAN_ACCESS_TOKEN }}
 
       - name: Configure kubeconfig
         env:
@@ -121,8 +119,6 @@ jobs:
           sed -i -E 's#^([[:space:]]*command:[[:space:]]*).*(doctl(\.exe)?)$#\1doctl#g' "$HOME/.kube/config"
 
       - name: Validate kubeconfig auth requirements
-        env:
-          DO_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
         shell: bash
         run: |
           if grep -q "^[[:space:]]*exec:" "$HOME/.kube/config"; then
@@ -132,7 +128,7 @@ jobs:
               exit 1
             fi
 
-            if [ -z "$DO_ACCESS_TOKEN" ]; then
+            if [ -z "$DIGITALOCEAN_ACCESS_TOKEN" ]; then
               echo "kubeconfig uses doctl exec auth, but DIGITALOCEAN_ACCESS_TOKEN is missing."
               echo "Add repo secret DIGITALOCEAN_ACCESS_TOKEN, or upload a static kubeconfig."
               exit 1
