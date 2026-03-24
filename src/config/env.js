@@ -130,6 +130,8 @@ const env = {
   logDir: process.env.LOG_DIR ,
   logToConsole: parseBoolean(process.env.LOG_TO_CONSOLE, true),
   logToFile: parseBoolean(process.env.LOG_TO_FILE, true),
+  logRetentionDays: parseNumber(process.env.LOG_RETENTION_DAYS, 10),
+  logCleanupIntervalHours: parseNumber(process.env.LOG_CLEANUP_INTERVAL_HOURS, 24),
 
   // Request handling
   bodyLimit: process.env.BODY_LIMIT || "100kb",

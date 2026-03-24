@@ -43,7 +43,11 @@ services:
       - key: LOG_TO_CONSOLE
         value: "true"
       - key: LOG_TO_FILE
-        value: "false"
+        value: "true"
+      - key: LOG_RETENTION_DAYS
+        value: "10"
+      - key: LOG_CLEANUP_INTERVAL_HOURS
+        value: "24"
 
       - key: JWT_SECRET
         generateValue: true
