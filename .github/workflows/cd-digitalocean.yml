@@ -99,6 +99,18 @@ jobs:
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
 
+      - name: Validate DigitalOcean token presence
+        shell: bash
+        run: |
+          if [ -z "$DIGITALOCEAN_ACCESS_TOKEN" ] || [ "${#DIGITALOCEAN_ACCESS_TOKEN}" -lt 20 ]; then
+            echo "DIGITALOCEAN_ACCESS_TOKEN is missing or invalid length."
+            exit 1
+          fi
+
+      - name: Initialize doctl auth context
+        shell: bash
+        run: doctl auth init -t "$DIGITALOCEAN_ACCESS_TOKEN" >/dev/null
+
       - name: Verify doctl authentication
         shell: bash
         run: doctl account get >/dev/null
@@ -120,6 +132,8 @@ jobs:
         shell: bash
         run: |
           sed -i -E 's#^([[:space:]]*command:[[:space:]]*).*(doctl(\.exe)?)$#\1doctl#g' "$HOME/.kube/config"
+          sed -i -E '/name:[[:space:]]*DIGITALOCEAN_ACCESS_TOKEN/{N;d;}' "$HOME/.kube/config"
+          sed -i -E '/^[[:space:]]*env:[[:space:]]*$/d' "$HOME/.kube/config"
 
       - name: Validate kubeconfig auth requirements
         shell: bash
@@ -137,6 +151,9 @@ jobs:
               exit 1
             fi
           fi
+
+      - name: Verify Kubernetes API connectivity
+        run: kubectl cluster-info
 
       - name: Apply Kubernetes manifests
         run: kubectl apply -k k8s/digitalocean
