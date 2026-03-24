@@ -1,4 +1,4 @@
-import { body, query } from "express-validator";
+import { body, param, query } from "express-validator";
 
 export const registerValidation = [
   body("fullName")
@@ -85,4 +85,9 @@ export const adminStepUpValidation = [
     }
     return true;
   })
+];
+
+export const updateUserPollPermissionValidation = [
+  param("userId").isMongoId().withMessage("Invalid user id"),
+  body("canCreatePolls").isBoolean().withMessage("canCreatePolls must be boolean")
 ];

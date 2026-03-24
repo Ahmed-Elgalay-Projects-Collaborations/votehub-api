@@ -28,7 +28,7 @@ const ensureElectionExists = async (electionId) => {
   return election;
 };
 
-const auditAdminAction = async ({ req, eventType, metadata }) => {
+const auditElectionAction = async ({ req, eventType, metadata, signAction = false }) => {
   if (!req?.user?.id) {
     return;
   }
@@ -39,8 +39,28 @@ const auditAdminAction = async ({ req, eventType, metadata }) => {
     actorId: req.user.id,
     actorRole: req.user.role,
     metadata,
-    signAction: true
+    signAction
   });
+};
+
+const canCreatePoll = (actor) => actor?.role === "admin" || Boolean(actor?.canCreatePolls);
+
+const ensurePollCreatorPermission = (actor) => {
+  if (canCreatePoll(actor)) {
+    return;
+  }
+
+  throw new ApiError(403, "Poll creation permission is required", "POLL_CREATION_FORBIDDEN");
+};
+
+const ensureOwnershipOrAdmin = (election, actor) => {
+  if (actor?.role === "admin") {
+    return;
+  }
+
+  if (!actor?.id || String(election.createdBy) !== String(actor.id)) {
+    throw new ApiError(403, "Forbidden", "FORBIDDEN");
+  }
 };
 
 const validateElectionWindow = (startsAt, endsAt) => {
@@ -55,13 +75,18 @@ const assertSelectionLimit = (maxSelections, options) => {
   }
 };
 
-export const listElections = async ({ includeArchived = false, adminView = false } = {}) => {
+export const listElections = async ({ includeArchived = false, adminView = false, viewerId = null } = {}) => {
   const query = {};
 
   if (adminView) {
     if (!includeArchived) {
       query.status = { $ne: "archived" };
     }
+  } else if (viewerId) {
+    query.$or = [
+      { status: { $in: ["published", "open", "closed"] } },
+      { createdBy: viewerId }
+    ];
   } else {
     query.status = { $in: ["published", "open", "closed"] };
   }
@@ -72,17 +97,20 @@ export const listElections = async ({ includeArchived = false, adminView = false
     .sort({ createdAt: -1 });
 };
 
-export const getElectionById = async (electionId, viewerRole = "voter") => {
+export const getElectionById = async (electionId, { viewerRole = "voter", viewerId = null } = {}) => {
   const election = await ensureElectionExists(electionId);
 
-  if (viewerRole !== "admin" && (election.status === "draft" || election.status === "archived")) {
+  const isOwner = viewerId && String(election.createdBy) === String(viewerId);
+  if (viewerRole !== "admin" && !isOwner && (election.status === "draft" || election.status === "archived")) {
     throw new ApiError(404, "Election not found", "ELECTION_NOT_FOUND");
   }
 
   return election;
 };
 
-export const createElection = async (payload, userId, { req } = {}) => {
+export const createElection = async (payload, actor, { req } = {}) => {
+  ensurePollCreatorPermission(actor);
+
   const startsAt = new Date(payload.startsAt);
   const endsAt = new Date(payload.endsAt);
   const maxSelections = payload.maxSelections || 1;
@@ -94,24 +122,27 @@ export const createElection = async (payload, userId, { req } = {}) => {
     ...payload,
     startsAt,
     endsAt,
-    createdBy: userId
+    createdBy: actor.id
   });
 
-  await auditAdminAction({
+  await auditElectionAction({
     req,
-    eventType: "admin.election_created",
+    eventType: actor.role === "admin" ? "admin.election_created" : "user.poll_created",
     metadata: {
       electionId: election.id,
       status: election.status,
       type: election.type
-    }
+    },
+    signAction: actor.role === "admin"
   });
 
   return election;
 };
 
-export const updateElection = async (electionId, payload, { req } = {}) => {
+export const updateElection = async (electionId, payload, actor, { req } = {}) => {
+  ensurePollCreatorPermission(actor);
   const election = await ensureElectionExists(electionId);
+  ensureOwnershipOrAdmin(election, actor);
 
   if (election.status === "closed" || election.status === "archived") {
     throw new ApiError(400, "Closed or archived elections cannot be modified", "ELECTION_LOCKED");
@@ -135,21 +166,24 @@ export const updateElection = async (electionId, payload, { req } = {}) => {
   Object.assign(election, payload);
   await election.save();
 
-  await auditAdminAction({
+  await auditElectionAction({
     req,
-    eventType: "admin.election_updated",
+    eventType: actor.role === "admin" ? "admin.election_updated" : "user.poll_updated",
     metadata: {
       electionId: election.id,
       status: election.status,
       updatedFields: Object.keys(payload)
-    }
+    },
+    signAction: actor.role === "admin"
   });
 
   return election;
 };
 
-export const changeElectionStatus = async (electionId, status, { req } = {}) => {
+export const changeElectionStatus = async (electionId, status, actor, { req } = {}) => {
+  ensurePollCreatorPermission(actor);
   const election = await ensureElectionExists(electionId);
+  ensureOwnershipOrAdmin(election, actor);
 
   if (election.status === status) {
     return election;
@@ -175,21 +209,24 @@ export const changeElectionStatus = async (electionId, status, { req } = {}) => 
   election.status = status;
   await election.save();
 
-  await auditAdminAction({
+  await auditElectionAction({
     req,
-    eventType: "admin.election_status_changed",
+    eventType: actor.role === "admin" ? "admin.election_status_changed" : "user.poll_status_changed",
     metadata: {
       electionId: election.id,
       fromStatus: previousStatus,
       toStatus: status
-    }
+    },
+    signAction: actor.role === "admin"
   });
 
   return election;
 };
 
-export const archiveElection = async (electionId, { req } = {}) => {
+export const archiveElection = async (electionId, actor, { req } = {}) => {
+  ensurePollCreatorPermission(actor);
   const election = await ensureElectionExists(electionId);
+  ensureOwnershipOrAdmin(election, actor);
 
   if (election.status === "archived") {
     return election;
@@ -199,13 +236,14 @@ export const archiveElection = async (electionId, { req } = {}) => {
   election.status = "archived";
   await election.save();
 
-  await auditAdminAction({
+  await auditElectionAction({
     req,
-    eventType: "admin.election_archived",
+    eventType: actor.role === "admin" ? "admin.election_archived" : "user.poll_archived",
     metadata: {
       electionId: election.id,
       fromStatus: previousStatus
-    }
+    },
+    signAction: actor.role === "admin"
   });
 
   return election;

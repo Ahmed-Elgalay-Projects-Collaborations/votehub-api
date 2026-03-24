@@ -29,6 +29,10 @@ const userSchema = new mongoose.Schema(
       enum: ["voter", "admin"],
       default: "voter"
     },
+    canCreatePolls: {
+      type: Boolean,
+      default: false
+    },
     isActive: {
       type: Boolean,
       default: true
@@ -88,6 +92,7 @@ userSchema.methods.toSafeObject = function toSafeObject() {
     fullName: this.fullName,
     email: this.email,
     role: this.role,
+    canCreatePolls: this.role === "admin" ? true : this.canCreatePolls,
     isActive: this.isActive,
     emailVerified: this.emailVerified,
     otpEnabled: this.otpEnabled || this.role === "admin",

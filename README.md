@@ -153,11 +153,15 @@ Notes:
 - `POST /api/v1/auth/otp/disable`
 - `POST /api/v1/auth/admin/step-up` (admin)
 - `GET /api/v1/auth/admin/audit/verify` (admin + step-up)
+- `PATCH /api/v1/auth/admin/users/:userId/poll-permission` (admin + step-up)
 - `POST /api/v1/auth/logout`
 - `GET /api/v1/auth/csrf-token`
 - `GET /api/v1/auth/me`
 - `GET /api/v1/elections`
-- `POST /api/v1/elections` (admin)
+- `POST /api/v1/elections` (poll creators, admin)
+- `PATCH /api/v1/elections/:electionId` (poll creators for own polls, admin for all)
+- `PATCH /api/v1/elections/:electionId/status` (poll creators for own polls, admin for all)
+- `DELETE /api/v1/elections/:electionId` (poll creators for own polls, admin for all)
 - `POST /api/v1/elections/:electionId/votes` (authenticated)
 - `GET /api/v1/elections/:electionId/results`
 - `GET /api/v1/votes/me`
@@ -175,4 +179,6 @@ When `ENABLE_METRICS=true`, Prometheus metrics are exposed at `GET /metrics`.
 - Email verification is required before login is completed.
 - OTP is optional for normal users and mandatory for admin users.
 - Admin-sensitive operations require one-time `X-Admin-Step-Up-Token` from `POST /auth/admin/step-up`.
+- Poll creation is permission-based: admins can grant/revoke `canCreatePolls` for voters via `PATCH /auth/admin/users/:userId/poll-permission`.
+- Users with poll permission can create/manage only polls they own; admins can manage all polls.
 - Votes are stored with encrypted selections at rest and return signed receipts on successful casting.

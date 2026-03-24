@@ -46,3 +46,10 @@ export const requireAdminStepUp = async (req, res, next) => {
   }
 };
 
+export const requireAdminStepUpIfAdmin = (req, res, next) => {
+  if (req.user?.role !== "admin") {
+    return next();
+  }
+
+  return requireAdminStepUp(req, res, next);
+};

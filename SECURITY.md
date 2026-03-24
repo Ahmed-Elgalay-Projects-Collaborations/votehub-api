@@ -45,7 +45,9 @@ This document lists the security controls currently implemented in the VoteHub b
 ## Authorization Controls
 - Role-based access control (`voter`, `admin`).
 - Route-level role enforcement for admin-only endpoints.
+- Permission-based poll builder authorization (`canCreatePolls`) managed by admins.
 - Object-level restrictions for user-specific resources where applicable.
+- Election mutation routes enforce ownership for non-admin poll creators (`createdBy` must match authenticated user).
 - Email-verified gate enforced before sensitive access.
 
 ## MFA / OTP Security
@@ -64,6 +66,7 @@ This document lists the security controls currently implemented in the VoteHub b
 - Step-up token bound to admin subject and short expiration.
 - Step-up replay prevention via one-time token consumption.
 - Sensitive admin mutation routes require step-up.
+- Admin permission-grant operation for poll creation (`PATCH /auth/admin/users/:userId/poll-permission`) requires step-up.
 
 ## Login Abuse and Account Lockout
 - Login abuse guard on login endpoint.

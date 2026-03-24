@@ -9,8 +9,8 @@ import {
   updateElectionController
 } from "../controllers/electionController.js";
 import { castVoteController } from "../controllers/voteController.js";
-import { authorizeRoles, optionalAuth, requireAuth } from "../middlewares/authMiddleware.js";
-import { requireAdminStepUp } from "../middlewares/adminStepUpMiddleware.js";
+import { optionalAuth, requireAuth, requirePollCreator } from "../middlewares/authMiddleware.js";
+import { requireAdminStepUpIfAdmin } from "../middlewares/adminStepUpMiddleware.js";
 import { validateRequestMiddleware } from "../middlewares/validateRequestMiddleware.js";
 import {
   changeElectionStatusValidation,
@@ -35,12 +35,20 @@ router.post(
   castVoteController
 );
 
-router.post("/", requireAuth, authorizeRoles("admin"), requireAdminStepUp, createElectionValidation, validateRequestMiddleware, createElectionController);
+router.post(
+  "/",
+  requireAuth,
+  requirePollCreator,
+  requireAdminStepUpIfAdmin,
+  createElectionValidation,
+  validateRequestMiddleware,
+  createElectionController
+);
 router.patch(
   "/:electionId",
   requireAuth,
-  authorizeRoles("admin"),
-  requireAdminStepUp,
+  requirePollCreator,
+  requireAdminStepUpIfAdmin,
   electionIdParamValidation,
   updateElectionValidation,
   validateRequestMiddleware,
@@ -49,8 +57,8 @@ router.patch(
 router.patch(
   "/:electionId/status",
   requireAuth,
-  authorizeRoles("admin"),
-  requireAdminStepUp,
+  requirePollCreator,
+  requireAdminStepUpIfAdmin,
   electionIdParamValidation,
   changeElectionStatusValidation,
   validateRequestMiddleware,
@@ -59,8 +67,8 @@ router.patch(
 router.delete(
   "/:electionId",
   requireAuth,
-  authorizeRoles("admin"),
-  requireAdminStepUp,
+  requirePollCreator,
+  requireAdminStepUpIfAdmin,
   electionIdParamValidation,
   validateRequestMiddleware,
   archiveElectionController

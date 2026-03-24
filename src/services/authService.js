@@ -1,6 +1,8 @@
 import bcrypt from "bcryptjs";
+import mongoose from "mongoose";
 import User from "../models/User.js";
 import env from "../config/env.js";
+import { appendAuditLog } from "./auditLogService.js";
 import { ApiError } from "../utils/apiError.js";
 import { signAccessToken } from "../utils/jwt.js";
 import { appLogger } from "../config/logger.js";
@@ -77,4 +79,36 @@ export const ensureDefaultAdmin = async () => {
   });
 
   appLogger.warn("Default admin account created from environment variables");
+};
+
+export const setUserPollCreationPermission = async ({ targetUserId, canCreatePolls, req = null }) => {
+  if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+    throw new ApiError(400, "Invalid user id", "INVALID_USER_ID");
+  }
+
+  const user = await User.findById(targetUserId);
+  if (!user) {
+    throw new ApiError(404, "User not found", "USER_NOT_FOUND");
+  }
+
+  if (user.role === "admin") {
+    throw new ApiError(400, "Poll creation permission cannot be changed for admin users", "ADMIN_PERMISSION_IMMUTABLE");
+  }
+
+  user.canCreatePolls = Boolean(canCreatePolls);
+  await user.save();
+
+  await appendAuditLog({
+    eventType: "admin.user_poll_permission_updated",
+    req,
+    actorId: req?.user?.id || null,
+    actorRole: req?.user?.role || null,
+    metadata: {
+      targetUserId: user.id,
+      canCreatePolls: user.canCreatePolls
+    },
+    signAction: true
+  });
+
+  return user.toSafeObject();
 };

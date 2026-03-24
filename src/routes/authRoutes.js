@@ -9,6 +9,7 @@ import {
   register,
   resendVerification,
   startOtpEnrollment,
+  updateUserPollPermission,
   verifyAuditChain,
   verifyEmail,
   verifyLoginOtp,
@@ -25,6 +26,7 @@ import {
   registerValidation,
   resendVerificationValidation,
   startOtpEnrollmentValidation,
+  updateUserPollPermissionValidation,
   verifyEmailValidation,
   verifyLoginOtpValidation,
   verifyOtpEnrollmentValidation
@@ -42,6 +44,15 @@ router.post("/otp/verify-setup", optionalAuth, verifyOtpEnrollmentValidation, va
 router.post("/otp/disable", requireAuth, disableOtpValidation, validateRequestMiddleware, disableOtp);
 router.post("/admin/step-up", requireAuth, authorizeRoles("admin"), adminStepUpValidation, validateRequestMiddleware, issueAdminStepUp);
 router.get("/admin/audit/verify", requireAuth, authorizeRoles("admin"), requireAdminStepUp, verifyAuditChain);
+router.patch(
+  "/admin/users/:userId/poll-permission",
+  requireAuth,
+  authorizeRoles("admin"),
+  requireAdminStepUp,
+  updateUserPollPermissionValidation,
+  validateRequestMiddleware,
+  updateUserPollPermission
+);
 router.post("/logout", requireAuth, logout);
 router.get("/csrf-token", requireAuth, issueCsrfToken);
 router.get("/me", requireAuth, me);

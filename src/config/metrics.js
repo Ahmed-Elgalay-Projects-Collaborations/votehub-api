@@ -141,6 +141,7 @@ const incrementMappedSecurityMetric = (event) => {
   if (
     event === "missing_auth_token" ||
     event === "forbidden_resource_access" ||
+    event === "forbidden_poll_creation_access" ||
     event === "token_validation_failed" ||
     event === "unverified_user_access_attempt" ||
     event === "unverified_login_attempt" ||

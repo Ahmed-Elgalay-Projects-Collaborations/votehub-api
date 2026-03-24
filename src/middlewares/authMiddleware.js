@@ -27,7 +27,7 @@ const getRequestToken = (req) => {
 const resolveAuthenticatedUser = async (req, token) => {
   try {
     const payload = verifyAccessToken(token);
-    const user = await User.findById(payload.sub).select("_id email role isActive emailVerified otpEnabled");
+    const user = await User.findById(payload.sub).select("_id email role isActive emailVerified otpEnabled canCreatePolls");
 
     if (!user || !user.isActive) {
       logSecurityEvent("invalid_token_user", req, { sub: payload.sub });
@@ -43,6 +43,7 @@ const resolveAuthenticatedUser = async (req, token) => {
       id: user.id,
       email: user.email,
       role: user.role,
+      canCreatePolls: user.role === "admin" ? true : Boolean(user.canCreatePolls),
       emailVerified: user.emailVerified,
       otpEnabled: user.otpEnabled || user.role === "admin"
     };
@@ -106,4 +107,20 @@ export const authorizeRoles = (...allowedRoles) => (req, res, next) => {
   }
 
   return next();
+};
+
+export const requirePollCreator = (req, res, next) => {
+  if (!req.user) {
+    return next(new ApiError(401, "Authentication required", "AUTH_REQUIRED"));
+  }
+
+  if (req.user.role === "admin" || req.user.canCreatePolls) {
+    return next();
+  }
+
+  logSecurityEvent("forbidden_poll_creation_access", req, {
+    role: req.user.role,
+    canCreatePolls: req.user.canCreatePolls
+  });
+  return next(new ApiError(403, "Poll creation permission is required", "POLL_CREATION_FORBIDDEN"));
 };

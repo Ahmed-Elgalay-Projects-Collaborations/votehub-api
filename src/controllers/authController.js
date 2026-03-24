@@ -1,5 +1,11 @@
 import User from "../models/User.js";
-import { authenticateUser, issueLoginPayload, recordSuccessfulLoginContext, registerUser } from "../services/authService.js";
+import {
+  authenticateUser,
+  issueLoginPayload,
+  recordSuccessfulLoginContext,
+  registerUser,
+  setUserPollCreationPermission
+} from "../services/authService.js";
 import { verifyEmailByToken, resendVerificationEmail, sendVerificationEmail } from "../services/emailVerificationService.js";
 import { getFailedLoginAttempts, recordFailedLogin, resetFailedLogins } from "../services/loginAttemptService.js";
 import {
@@ -452,6 +458,32 @@ export const verifyAuditChain = asyncHandler(async (req, res) => {
     success: true,
     data: {
       integrity: result
+    },
+    requestId: req.id
+  });
+});
+
+export const updateUserPollPermission = asyncHandler(async (req, res) => {
+  const user = await setUserPollCreationPermission({
+    targetUserId: req.params.userId,
+    canCreatePolls: req.body.canCreatePolls,
+    req
+  });
+
+  logSecurityEvent(
+    "admin_user_poll_permission_updated",
+    req,
+    {
+      targetUserId: user.id,
+      canCreatePolls: user.canCreatePolls
+    },
+    "info"
+  );
+
+  res.status(200).json({
+    success: true,
+    data: {
+      user
     },
     requestId: req.id
   });

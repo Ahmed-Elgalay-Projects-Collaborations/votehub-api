@@ -141,3 +141,23 @@ export const issueAdminStepUpToken = async (client, { csrfToken, currentPassword
   return response.body?.data?.stepUpToken || null;
 };
 
+export const updateUserPollPermissionAsAdmin = async (
+  client,
+  { csrfToken, currentPassword, otpSecret, userId, canCreatePolls }
+) => {
+  const stepUpToken = await issueAdminStepUpToken(client, {
+    csrfToken,
+    currentPassword,
+    otpSecret
+  });
+
+  return apiRequest(client, "patch", `/api/v1/auth/admin/users/${userId}/poll-permission`, {
+    csrfToken,
+    headers: {
+      "X-Admin-Step-Up-Token": stepUpToken
+    },
+    body: {
+      canCreatePolls
+    }
+  });
+};

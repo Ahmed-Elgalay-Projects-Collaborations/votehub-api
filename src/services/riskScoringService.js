@@ -8,6 +8,7 @@ const EVENT_WEIGHTS = {
   otp_failed_attempt: 12,
   token_validation_failed: 8,
   forbidden_resource_access: 7,
+  forbidden_poll_creation_access: 7,
   login_rate_limit_triggered: 14,
   global_rate_limit_triggered: 10,
   honeypot_triggered: 25,
