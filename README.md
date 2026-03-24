@@ -23,12 +23,20 @@ Kubernetes (DOKS) manifests:
 
 ## Run locally
 
-1. Copy `.env.example` to `.env` and fill secrets.
-2. Install dependencies:
+1. Keep real env files outside the repo workspace (for example: `C:\Users\Ahmed\.votehub-secrets\votehub-api.env`).
+2. Load env vars into the current shell (PowerShell):
+   ```powershell
+   Get-Content "$HOME\.votehub-secrets\votehub-api.env" | ForEach-Object {
+     if ($_ -match '^\s*#' -or $_ -notmatch '=') { return }
+     $name, $value = $_ -split '=', 2
+     [Environment]::SetEnvironmentVariable($name.Trim(), $value.Trim(), 'Process')
+   }
+   ```
+3. Install dependencies:
    ```bash
    npm install
    ```
-3. Start development server:
+4. Start development server:
    ```bash
    npm run dev
    ```
