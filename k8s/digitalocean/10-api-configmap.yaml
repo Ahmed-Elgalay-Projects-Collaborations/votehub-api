@@ -11,6 +11,7 @@ data:
   CLIENT_URL: "https://votehub.zapto.org"
   API_BASE_URL: "https://votehub.zapto.org/api/v1"
   CORS_ORIGINS: "https://votehub.zapto.org"
+  EMAIL_VERIFICATION_URL_BASE: "https://votehub.zapto.org/verify-email"
 
   ENABLE_COOKIE_AUTH: "true"
   COOKIE_SECURE: "true"

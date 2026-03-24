@@ -16,6 +16,7 @@ data:
   CLIENT_URL: "https://app.votehub.example"
   API_BASE_URL: "https://api.votehub.example"
   CORS_ORIGINS: "https://app.votehub.example"
+  EMAIL_VERIFICATION_URL_BASE: "https://app.votehub.example/verify-email"
   COOKIE_SECURE: "true"
   COOKIE_SAMESITE: "lax"
 ---

@@ -121,8 +121,21 @@ export const login = asyncHandler(async (req, res) => {
   }
 
   if (!user.emailVerified) {
+    try {
+      await sendVerificationEmail(user, req);
+    } catch (error) {
+      logSecurityEvent("verification_email_resend_failed", req, {
+        userId: user.id,
+        reason: error.message
+      });
+    }
+
     logSecurityEvent("unverified_login_attempt", req, { userId: user.id });
-    throw new ApiError(403, "Please verify your email before logging in", "EMAIL_NOT_VERIFIED");
+    throw new ApiError(
+      403,
+      "Please verify your email before logging in. A new verification email has been sent.",
+      "EMAIL_NOT_VERIFIED"
+    );
   }
 
   const riskBlock = isRiskBlocked({ ip: req.ip, userId: user.id });
