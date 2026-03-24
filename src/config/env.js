@@ -39,6 +39,19 @@ const parseNumber = (value, defaultValue) => {
   return defaultValue;
 };
 
+const parseSmtpIpFamily = (value) => {
+  if (value === undefined || value === null || value === "") {
+    return 0;
+  }
+
+  const parsed = Number(value);
+  if (parsed === 4 || parsed === 6) {
+    return parsed;
+  }
+
+  return 0;
+};
+
 const parseOrigins = (value) => {
   if (!value) {
     return [];
@@ -155,6 +168,11 @@ const env = {
   smtpUser: process.env.SMTP_USER || "",
   smtpPass: getSecret("SMTP_PASS", ""),
   smtpFrom: process.env.SMTP_FROM || "no-reply@votehub.local",
+  smtpConnectionTimeoutMs: parseNumber(process.env.SMTP_CONNECTION_TIMEOUT_MS, 10_000),
+  smtpGreetingTimeoutMs: parseNumber(process.env.SMTP_GREETING_TIMEOUT_MS, 10_000),
+  smtpSocketTimeoutMs: parseNumber(process.env.SMTP_SOCKET_TIMEOUT_MS, 15_000),
+  smtpDnsTimeoutMs: parseNumber(process.env.SMTP_DNS_TIMEOUT_MS, 10_000),
+  smtpIpFamily: parseSmtpIpFamily(process.env.SMTP_IP_FAMILY),
 
   // Replay / risk engine
   replayProtectionTtlSeconds: Number(process.env.REPLAY_PROTECTION_TTL_SECONDS) || 24 * 60 * 60,

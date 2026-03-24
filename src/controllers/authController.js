@@ -121,14 +121,13 @@ export const login = asyncHandler(async (req, res) => {
   }
 
   if (!user.emailVerified) {
-    try {
-      await sendVerificationEmail(user, req);
-    } catch (error) {
+    // Do not block login response on SMTP/network delays.
+    void sendVerificationEmail(user, req).catch((error) => {
       logSecurityEvent("verification_email_resend_failed", req, {
         userId: user.id,
         reason: error.message
       });
-    }
+    });
 
     logSecurityEvent("unverified_login_attempt", req, { userId: user.id });
     throw new ApiError(

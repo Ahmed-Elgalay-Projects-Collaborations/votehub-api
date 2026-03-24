@@ -12,14 +12,26 @@ const getTransporter = () => {
   }
 
   if (!transporter) {
-    transporter = nodemailer.createTransport({
+    const smtpOptions = {
       host: env.smtpHost,
       port: env.smtpPort,
       secure: env.smtpSecure,
+      connectionTimeout: env.smtpConnectionTimeoutMs,
+      greetingTimeout: env.smtpGreetingTimeoutMs,
+      socketTimeout: env.smtpSocketTimeoutMs,
+      dnsTimeout: env.smtpDnsTimeoutMs,
       auth: {
         user: env.smtpUser,
         pass: env.smtpPass
       }
+    };
+
+    if (env.smtpIpFamily === 4 || env.smtpIpFamily === 6) {
+      smtpOptions.family = env.smtpIpFamily;
+    }
+
+    transporter = nodemailer.createTransport({
+      ...smtpOptions
     });
   }
 

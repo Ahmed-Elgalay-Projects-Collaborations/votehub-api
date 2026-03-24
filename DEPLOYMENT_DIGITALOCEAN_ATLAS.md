@@ -149,6 +149,8 @@ Important:
 - Set `MONGO_URI` to Atlas connection string.
 - `metrics_token` must match backend `METRICS_TOKEN`.
 - Fill all crypto/auth/smtp secrets.
+- Set `EMAIL_VERIFICATION_URL_BASE=https://votehub.zapto.org/verify-email` in production.
+- If SMTP resolves to unreachable IPv6 from cluster, set `SMTP_IP_FAMILY=4`.
 
 Create namespace and secrets:
 
