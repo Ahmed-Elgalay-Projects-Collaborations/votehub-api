@@ -27,15 +27,24 @@ Where NGINX exists:
 
 ### Optional: GitHub Auto-Deploy (CD)
 
-This repository includes `.github/workflows/cd-digitalocean.yml`.
-On push to `main`/`master`, it:
-- runs tests
-- builds and pushes `ghcr.io/<owner>/votehub-api`
-- applies `k8s/digitalocean`
-- updates deployment `api` image to the immutable digest
+Both repositories now include `.github/workflows/cd-digitalocean.yml`.
 
-Required GitHub repository secret:
+- `votehub-api` workflow:
+  - runs backend tests
+  - builds and pushes `ghcr.io/<owner>/votehub-api`
+  - applies `votehub-api/k8s/digitalocean`
+  - updates deployment `api` image to immutable digest
+- `votehub-web` workflow:
+  - runs lint + production build
+  - builds and pushes `ghcr.io/<owner>/votehub-web`
+  - applies `votehub-web/k8s/digitalocean`
+  - updates deployment `web` image to immutable digest
+
+Required GitHub repository secret in each repo:
 - `DOKS_KUBECONFIG_B64`: base64-encoded kubeconfig for the target cluster.
+
+Optional GitHub repository variable in `votehub-web`:
+- `VITE_API_URL`: build-time API base URL (defaults to `/api/v1`).
 
 Create the secret value from your local kubeconfig:
 
@@ -54,7 +63,9 @@ The cluster must already contain:
 - image pull secret `ghcr-credentials`
 - application secrets (`votehub-api-secrets`, `votehub-monitoring-secrets`)
 
-## 3. Build and Push Images
+## 3. Build and Push Images (Manual Fallback)
+
+Use this section only if you are not using GitHub CD workflows.
 
 Build/push backend image:
 
