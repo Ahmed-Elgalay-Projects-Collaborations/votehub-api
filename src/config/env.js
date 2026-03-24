@@ -13,26 +13,46 @@ const readSecretFile = (filePath) => {
   return fs.readFileSync(filePath, "utf8").trim();
 };
 
+const normalizeEnvString = (value) => {
+  if (value === undefined || value === null) {
+    return "";
+  }
+
+  const normalized = String(value).trim();
+  if (!normalized) {
+    return "";
+  }
+
+  const hasMatchingDoubleQuotes = normalized.startsWith("\"") && normalized.endsWith("\"");
+  const hasMatchingSingleQuotes = normalized.startsWith("'") && normalized.endsWith("'");
+
+  if (hasMatchingDoubleQuotes || hasMatchingSingleQuotes) {
+    return normalized.slice(1, -1).trim();
+  }
+
+  return normalized;
+};
+
 const getSecret = (key, fallback = "") => {
   const fileKey = `${key}_FILE`;
   if (process.env[fileKey]) {
-    return readSecretFile(process.env[fileKey]);
+    return normalizeEnvString(readSecretFile(process.env[fileKey]));
   }
   if (process.env[key]) {
-    return String(process.env[key]);
+    return normalizeEnvString(process.env[key]);
   }
-  return fallback;
+  return normalizeEnvString(fallback);
 };
 
 const parseBoolean = (value, defaultValue = false) => {
   if (value === undefined) {
     return defaultValue;
   }
-  return ["true", "1", "yes", "on"].includes(String(value).toLowerCase());
+  return ["true", "1", "yes", "on"].includes(normalizeEnvString(value).toLowerCase());
 };
 
 const parseNumber = (value, defaultValue) => {
-  const parsed = Number(value);
+  const parsed = Number(normalizeEnvString(value));
   if (Number.isFinite(parsed) && parsed > 0) {
     return parsed;
   }
@@ -78,7 +98,7 @@ const parseTrustProxy = (value, defaultValue = 1) => {
     return defaultValue;
   }
 
-  const normalized = String(value).trim();
+  const normalized = normalizeEnvString(value);
 
   if (!normalized) {
     return defaultValue;
@@ -121,9 +141,9 @@ const env = {
   auditSalt: getSecret("AUDIT_SALT", ""),
 
   // Client / CORS
-  clientUrl: process.env.CLIENT_URL,
-  apiBaseUrl: process.env.API_BASE_URL || `http://localhost:${Number(process.env.PORT) || 3100}`,
-  corsOrigins: parseOrigins(process.env.CORS_ORIGINS || process.env.CLIENT_URL || "http://localhost:3000"),
+  clientUrl: normalizeEnvString(process.env.CLIENT_URL),
+  apiBaseUrl: normalizeEnvString(process.env.API_BASE_URL) || `http://localhost:${Number(process.env.PORT) || 3100}`,
+  corsOrigins: parseOrigins(normalizeEnvString(process.env.CORS_ORIGINS) || normalizeEnvString(process.env.CLIENT_URL) || "http://localhost:3000"),
 
   // Cookies / CSRF
   enableCookieAuth: parseBoolean(process.env.ENABLE_COOKIE_AUTH, true),
@@ -161,13 +181,15 @@ const env = {
 
   // Email verification + SMTP
   emailVerificationTokenExpiresMinutes: Number(process.env.EMAIL_VERIFICATION_TOKEN_EXPIRES_MINUTES) || 60,
-  emailVerificationUrlBase: process.env.EMAIL_VERIFICATION_URL_BASE || `${process.env.CLIENT_URL || "http://localhost:3000"}/verify-email`,
-  smtpHost: process.env.SMTP_HOST || "",
+  emailVerificationUrlBase:
+    normalizeEnvString(process.env.EMAIL_VERIFICATION_URL_BASE) ||
+    `${normalizeEnvString(process.env.CLIENT_URL) || "http://localhost:3000"}/verify-email`,
+  smtpHost: normalizeEnvString(process.env.SMTP_HOST),
   smtpPort: Number(process.env.SMTP_PORT) || 587,
   smtpSecure: parseBoolean(process.env.SMTP_SECURE, false),
-  smtpUser: process.env.SMTP_USER || "",
+  smtpUser: normalizeEnvString(process.env.SMTP_USER),
   smtpPass: getSecret("SMTP_PASS", ""),
-  smtpFrom: process.env.SMTP_FROM || "no-reply@votehub.local",
+  smtpFrom: normalizeEnvString(process.env.SMTP_FROM) || "no-reply@votehub.local",
   smtpConnectionTimeoutMs: parseNumber(process.env.SMTP_CONNECTION_TIMEOUT_MS, 10_000),
   smtpGreetingTimeoutMs: parseNumber(process.env.SMTP_GREETING_TIMEOUT_MS, 10_000),
   smtpSocketTimeoutMs: parseNumber(process.env.SMTP_SOCKET_TIMEOUT_MS, 15_000),

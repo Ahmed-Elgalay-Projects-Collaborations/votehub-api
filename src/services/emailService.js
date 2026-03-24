@@ -1,3 +1,5 @@
+import dns from "dns";
+import net from "net";
 import nodemailer from "nodemailer";
 import env from "../config/env.js";
 import { appLogger } from "../config/logger.js";
@@ -12,30 +14,59 @@ const getTransporter = () => {
   }
 
   if (!transporter) {
-    const smtpOptions = {
-      host: env.smtpHost,
-      port: env.smtpPort,
-      secure: env.smtpSecure,
-      connectionTimeout: env.smtpConnectionTimeoutMs,
-      greetingTimeout: env.smtpGreetingTimeoutMs,
-      socketTimeout: env.smtpSocketTimeoutMs,
-      dnsTimeout: env.smtpDnsTimeoutMs,
-      auth: {
-        user: env.smtpUser,
-        pass: env.smtpPass
-      }
-    };
-
-    if (env.smtpIpFamily === 4 || env.smtpIpFamily === 6) {
-      smtpOptions.family = env.smtpIpFamily;
-    }
-
-    transporter = nodemailer.createTransport({
-      ...smtpOptions
-    });
+    transporter = createTransporter();
   }
 
   return transporter;
+};
+
+const createTransporter = ({ host = env.smtpHost, family = env.smtpIpFamily, tlsServername = undefined } = {}) => {
+  const smtpOptions = {
+    host,
+    port: env.smtpPort,
+    secure: env.smtpSecure,
+    connectionTimeout: env.smtpConnectionTimeoutMs,
+    greetingTimeout: env.smtpGreetingTimeoutMs,
+    socketTimeout: env.smtpSocketTimeoutMs,
+    dnsTimeout: env.smtpDnsTimeoutMs,
+    auth: {
+      user: env.smtpUser,
+      pass: env.smtpPass
+    }
+  };
+
+  if (family === 4 || family === 6) {
+    smtpOptions.family = family;
+  }
+
+  if (tlsServername) {
+    smtpOptions.tls = {
+      ...(smtpOptions.tls || {}),
+      servername: tlsServername
+    };
+  }
+
+  return nodemailer.createTransport(smtpOptions);
+};
+
+const shouldRetryWithIpv4 = (error) => {
+  if (!error) {
+    return false;
+  }
+  const message = String(error.message || "");
+  return error.code === "ENETUNREACH" || message.includes("ENETUNREACH");
+};
+
+const resolveIpv4Address = async (host) => {
+  if (!host || net.isIP(host) === 4) {
+    return host;
+  }
+  if (net.isIP(host) === 6) {
+    return null;
+  }
+
+  const result = await dns.promises.lookup(host, { family: 4 });
+  return result?.address || null;
 };
 
 export const sendEmail = async ({ to, subject, text, html }) => {
@@ -47,13 +78,37 @@ export const sendEmail = async ({ to, subject, text, html }) => {
     return { delivered: false };
   }
 
-  await smtpTransporter.sendMail({
+  const mail = {
     from: env.smtpFrom,
     to,
     subject,
     text,
     html
-  });
+  };
+
+  try {
+    await smtpTransporter.sendMail(mail);
+  } catch (error) {
+    if (!shouldRetryWithIpv4(error)) {
+      throw error;
+    }
+
+    const ipv4Host = await resolveIpv4Address(env.smtpHost);
+    if (!ipv4Host) {
+      throw error;
+    }
+
+    const fallbackTransporter = createTransporter({
+      host: ipv4Host,
+      family: 4,
+      tlsServername: env.smtpHost
+    });
+
+    await fallbackTransporter.sendMail(mail);
+    appLogger.warn("SMTP IPv6 route unavailable; email sent using IPv4 fallback", {
+      smtpHost: env.smtpHost
+    });
+  }
 
   return { delivered: true };
 };
