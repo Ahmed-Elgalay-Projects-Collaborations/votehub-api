@@ -46,6 +46,10 @@ Required GitHub repository secret in each repo:
 Optional GitHub repository variable in `votehub-web`:
 - `VITE_API_URL`: build-time API base URL (defaults to `/api/v1`).
 
+Optional GHCR override secrets (use if `GITHUB_TOKEN` cannot push packages in your org):
+- `GHCR_TOKEN`: PAT with `write:packages` + `read:packages` (and `repo` for private repos), SSO-authorized for org.
+- `GHCR_USERNAME`: username that owns `GHCR_TOKEN` (if omitted, workflow uses `github.actor`).
+
 Create the secret value from your local kubeconfig:
 
 ```bash
