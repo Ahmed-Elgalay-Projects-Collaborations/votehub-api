@@ -94,11 +94,14 @@ jobs:
         with:
           version: "v1.30.0"
 
-      - name: Setup doctl (optional for exec-plugin kubeconfig)
-        if: ${{ env.DIGITALOCEAN_ACCESS_TOKEN != '' }}
+      - name: Setup doctl
         uses: digitalocean/action-doctl@v2
         with:
-          token: ${{ env.DIGITALOCEAN_ACCESS_TOKEN }}
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Verify doctl authentication
+        shell: bash
+        run: doctl account get >/dev/null
 
       - name: Configure kubeconfig
         env:
