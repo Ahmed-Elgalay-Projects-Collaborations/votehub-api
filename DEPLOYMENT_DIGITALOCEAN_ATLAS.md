@@ -23,8 +23,36 @@ Where NGINX exists:
 
 - DOKS cluster created and `kubectl` configured.
 - Atlas cluster ready (TLS enabled by Atlas default).
-- Domain DNS ready (`votehub.example.com`).
-- TLS cert/key files ready for ingress secret.
+- Domain DNS ready (`votehub.zapto.org`).
+
+### Optional: GitHub Auto-Deploy (CD)
+
+This repository includes `.github/workflows/cd-digitalocean.yml`.
+On push to `main`/`master`, it:
+- runs tests
+- builds and pushes `ghcr.io/<owner>/votehub-api`
+- applies `k8s/digitalocean`
+- updates deployment `api` image to the immutable digest
+
+Required GitHub repository secret:
+- `DOKS_KUBECONFIG_B64`: base64-encoded kubeconfig for the target cluster.
+
+Create the secret value from your local kubeconfig:
+
+```bash
+base64 -w 0 ~/.kube/config
+```
+
+PowerShell equivalent:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("$HOME\.kube\config"))
+```
+
+The cluster must already contain:
+- namespace `votehub`
+- image pull secret `ghcr-credentials`
+- application secrets (`votehub-api-secrets`, `votehub-monitoring-secrets`)
 
 ## 3. Build and Push Images
 
@@ -59,7 +87,16 @@ kubectl create secret docker-registry ghcr-credentials \
   --dry-run=client -o yaml | kubectl apply -f -
 ```
 
-## 4. Install NGINX Ingress Controller
+## 4. Install Cert-Manager (Automated TLS)
+
+```bash
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+kubectl rollout status deployment/cert-manager -n cert-manager --timeout=180s
+kubectl rollout status deployment/cert-manager-webhook -n cert-manager --timeout=180s
+kubectl rollout status deployment/cert-manager-cainjector -n cert-manager --timeout=180s
+```
+
+## 5. Install NGINX Ingress Controller
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
@@ -69,7 +106,7 @@ kubectl get svc ingress-nginx-controller -n ingress-nginx
 
 Wait until `EXTERNAL-IP` is assigned on `ingress-nginx-controller`.
 
-## 5. Install Metrics Server (Required for HPA)
+## 6. Install Metrics Server (Required for HPA)
 
 ```bash
 kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
@@ -77,7 +114,7 @@ kubectl rollout status deployment/metrics-server -n kube-system --timeout=180s
 kubectl top nodes
 ```
 
-## 6. Prepare Secrets
+## 7. Prepare Secrets
 
 Backend secret file:
 
@@ -109,14 +146,11 @@ kubectl create secret generic votehub-api-secrets \
 kubectl create secret generic votehub-monitoring-secrets \
   -n votehub \
   --from-env-file=k8s/digitalocean/secrets/monitoring-secrets.prod.env
-
-kubectl create secret tls votehub-tls \
-  -n votehub \
-  --cert=path/to/fullchain.crt \
-  --key=path/to/tls.key
 ```
 
-## 7. Apply Backend + Monitoring Manifests
+`votehub-tls` is created and renewed automatically by cert-manager via ingress + ClusterIssuer.
+
+## 8. Apply Backend + Monitoring Manifests
 
 ```bash
 kubectl apply -k k8s/digitalocean
@@ -128,7 +162,7 @@ This deploys:
 - Alertmanager Deployment/Service + config
 - PVCs for Prometheus and Alertmanager (`do-block-storage`)
 
-## 8. Apply Frontend Manifests
+## 9. Apply Frontend Manifests
 
 ```bash
 cd ../votehub-web
@@ -137,9 +171,9 @@ kubectl apply -k k8s/digitalocean
 
 This deploys:
 - Web Deployment/Service/HPA/PDB
-- Public Ingress (`votehub.example.com`)
+- Public Ingress (`votehub.zapto.org`)
 
-## 9. Verify Deployment
+## 10. Verify Deployment
 
 ```bash
 kubectl get pods -n votehub
@@ -149,12 +183,12 @@ kubectl get svc -n ingress-nginx
 ```
 
 Smoke checks:
-- `https://votehub.example.com/nginx-health`
-- `https://votehub.example.com/api/v1/health/live`
-- `https://votehub.example.com/api/v1/health/ready`
+- `https://votehub.zapto.org/nginx-health`
+- `https://votehub.zapto.org/api/v1/health/live`
+- `https://votehub.zapto.org/api/v1/health/ready`
 - Login + vote flow
 
-## 10. Access Prometheus and Alertmanager
+## 11. Access Prometheus and Alertmanager
 
 Port-forward locally:
 
@@ -167,7 +201,7 @@ Then open:
 - `http://localhost:9090`
 - `http://localhost:9093`
 
-## 11. Alertmanager Notifications
+## 12. Alertmanager Notifications
 
 Current `alertmanager.yml` uses a null receiver by default.
 
@@ -181,7 +215,7 @@ kubectl apply -f k8s/digitalocean/60-alertmanager-configmap.yaml
 kubectl rollout restart deploy/alertmanager -n votehub
 ```
 
-## 12. Security / Operations Checklist
+## 13. Security / Operations Checklist
 
 - Keep secrets in K8s secrets (not git).
 - `NODE_ENV=production`, secure cookies, HTTPS enforced.
@@ -191,7 +225,7 @@ kubectl rollout restart deploy/alertmanager -n votehub
 - Rotate secrets after incidents and periodically.
 - Disaster recovery: test Atlas restore + app redeploy on schedule.
 
-## 13. Known Limitation
+## 14. Known Limitation
 
 Risk scoring and lockout state remain in-memory in backend process.
 For multi-instance consistency, move these to Redis/shared storage.

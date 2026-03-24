@@ -8,9 +8,9 @@ data:
   PORT: "3100"
   TRUST_PROXY: "1"
 
-  CLIENT_URL: "https://votehub.example.com"
-  API_BASE_URL: "https://votehub.example.com/api/v1"
-  CORS_ORIGINS: "https://votehub.example.com"
+  CLIENT_URL: "https://votehub.zapto.org"
+  API_BASE_URL: "https://votehub.zapto.org/api/v1"
+  CORS_ORIGINS: "https://votehub.zapto.org"
 
   ENABLE_COOKIE_AUTH: "true"
   COOKIE_SECURE: "true"
