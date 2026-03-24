@@ -81,6 +81,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     environment: production
+    env:
+      DO_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
     permissions:
       contents: read
     steps:
@@ -91,6 +93,14 @@ jobs:
         uses: azure/setup-kubectl@v4
         with:
           version: "v1.30.0"
+
+      - name: Setup doctl (optional for exec-plugin kubeconfig)
+        if: ${{ env.DO_ACCESS_TOKEN != '' }}
+        uses: digitalocean/action-doctl@v2
+        env:
+          DO_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+        with:
+          token: ${{ env.DO_ACCESS_TOKEN }}
 
       - name: Configure kubeconfig
         env:
@@ -104,6 +114,30 @@ jobs:
           mkdir -p "$HOME/.kube"
           echo "$DOKS_KUBECONFIG_B64" | base64 --decode > "$HOME/.kube/config"
           chmod 600 "$HOME/.kube/config"
+
+      - name: Normalize kubeconfig exec command
+        shell: bash
+        run: |
+          sed -i -E 's#^([[:space:]]*command:[[:space:]]*).*(doctl(\.exe)?)$#\1doctl#g' "$HOME/.kube/config"
+
+      - name: Validate kubeconfig auth requirements
+        env:
+          DO_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+        shell: bash
+        run: |
+          if grep -q "^[[:space:]]*exec:" "$HOME/.kube/config"; then
+            if ! command -v doctl >/dev/null 2>&1; then
+              echo "kubeconfig uses exec auth plugin, but doctl is not installed."
+              echo "Either set DIGITALOCEAN_ACCESS_TOKEN or upload a non-exec kubeconfig."
+              exit 1
+            fi
+
+            if [ -z "$DO_ACCESS_TOKEN" ]; then
+              echo "kubeconfig uses doctl exec auth, but DIGITALOCEAN_ACCESS_TOKEN is missing."
+              echo "Add repo secret DIGITALOCEAN_ACCESS_TOKEN, or upload a static kubeconfig."
+              exit 1
+            fi
+          fi
 
       - name: Apply Kubernetes manifests
         run: kubectl apply -k k8s/digitalocean

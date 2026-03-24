@@ -42,6 +42,7 @@ Both repositories now include `.github/workflows/cd-digitalocean.yml`.
 
 Required GitHub repository secret in each repo:
 - `DOKS_KUBECONFIG_B64`: base64-encoded kubeconfig for the target cluster.
+- `DIGITALOCEAN_ACCESS_TOKEN` (required if your kubeconfig uses `exec` auth with `doctl`, common with DO-generated kubeconfig files).
 
 Optional GitHub repository variable in `votehub-web`:
 - `VITE_API_URL`: build-time API base URL (defaults to `/api/v1`).
