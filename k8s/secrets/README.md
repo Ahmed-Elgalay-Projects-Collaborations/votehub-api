@@ -1,5 +1,8 @@
 Copy the example files to non-committed `.env` files in this folder, then create the Kubernetes secrets before applying the workload manifests.
 
+Use raw values (no surrounding quotes) in `*.prod.env` files.
+For SMTP on DigitalOcean, if port `587`/`465` times out, use a provider endpoint that supports `2525`.
+
 ```powershell
 kubectl create secret generic votehub-api-secrets `
   -n votehub `

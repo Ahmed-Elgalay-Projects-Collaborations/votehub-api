@@ -149,8 +149,10 @@ Important:
 - Set `MONGO_URI` to Atlas connection string.
 - `metrics_token` must match backend `METRICS_TOKEN`.
 - Fill all crypto/auth/smtp secrets.
+- Do not wrap env values in quotes in `api-secrets.prod.env`.
 - Set `EMAIL_VERIFICATION_URL_BASE=https://votehub.zapto.org/verify-email` in production.
 - If SMTP resolves to unreachable IPv6 from cluster, set `SMTP_IP_FAMILY=4`.
+- If SMTP connection still times out on DOKS, switch to a provider/port reachable from your cluster (for example `smtp.sendgrid.net:2525`).
 
 Create namespace and secrets:
 

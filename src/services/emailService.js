@@ -5,6 +5,7 @@ import env from "../config/env.js";
 import { appLogger } from "../config/logger.js";
 
 let transporter = null;
+const reservedEmailDomains = ["example.com", "example.org", "example.net", "invalid", "localhost", "test"];
 
 export const isSmtpConfigured = () => Boolean(env.smtpHost && env.smtpUser && env.smtpPass);
 
@@ -69,6 +70,21 @@ const resolveIpv4Address = async (host) => {
   return result?.address || null;
 };
 
+const extractRecipientDomains = (to) => {
+  const recipients = Array.isArray(to) ? to : String(to || "").split(",");
+  return recipients
+    .map((value) => String(value || "").trim().toLowerCase())
+    .filter(Boolean)
+    .map((address) => {
+      const atIndex = address.lastIndexOf("@");
+      return atIndex >= 0 ? address.slice(atIndex + 1) : "";
+    })
+    .filter(Boolean);
+};
+
+const isReservedEmailDomain = (domain) =>
+  reservedEmailDomains.some((reserved) => domain === reserved || domain.endsWith(`.${reserved}`));
+
 export const sendEmail = async ({ to, subject, text, html }) => {
   const smtpTransporter = getTransporter();
   if (!smtpTransporter) {
@@ -76,6 +92,14 @@ export const sendEmail = async ({ to, subject, text, html }) => {
       toMasked: to ? `${String(to).slice(0, 2)}***` : "unknown"
     });
     return { delivered: false };
+  }
+
+  const recipientDomains = extractRecipientDomains(to);
+  if (recipientDomains.some(isReservedEmailDomain)) {
+    appLogger.warn("Skipping outbound email to reserved test domain", {
+      toMasked: to ? `${String(to).slice(0, 2)}***` : "unknown"
+    });
+    return { delivered: false, skipped: true };
   }
 
   const mail = {
