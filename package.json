@@ -16,8 +16,11 @@
     "url": "git+https://github.com/Ahmed-Elgalay-Projects-Collaborations/votehub-api.git"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Ahmed Elgalay",
+  "contributors": [
+    "Amr Ahmed"
+  ],
+  "license": "GPL-3.0-or-later",
   "bugs": {
     "url": "https://github.com/Ahmed-Elgalay-Projects-Collaborations/votehub-api/issues"
   },
