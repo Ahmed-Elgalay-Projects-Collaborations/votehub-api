@@ -19,9 +19,6 @@ import { honeypotMiddleware } from "./middlewares/honeypotMiddleware.js";
 
 const app = express();
 
-app.disable("x-powered-by");
-
-
 app.set("trust proxy", env.trustProxy);
 
 app.use(requestContextMiddleware);
@@ -29,6 +26,12 @@ app.use(metricsMiddleware);
 app.use(requestLoggerMiddleware);
 
 app.use(helmet());
+
+app.use((req, res, next) => {
+  res.setHeader('X-Powered-By', 'PHP/8.2.0'); // Mimicking PHP
+  next();
+});
+
 app.use(corsMiddleware);
 app.use(compression());
 app.use(express.json({ limit: env.bodyLimit }));
