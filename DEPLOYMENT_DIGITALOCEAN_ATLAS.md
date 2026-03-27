@@ -23,7 +23,7 @@ Where NGINX exists:
 
 - DOKS cluster created and `kubectl` configured.
 - Atlas cluster ready (TLS enabled by Atlas default).
-- Domain DNS ready (`votehub.zapto.org`).
+- Domain DNS ready (`votehub.me`).
 
 ### Optional: GitHub Auto-Deploy (CD)
 
@@ -150,7 +150,7 @@ Important:
 - `metrics_token` must match backend `METRICS_TOKEN`.
 - Fill all crypto/auth/smtp secrets.
 - Do not wrap env values in quotes in `api-secrets.prod.env`.
-- Set `EMAIL_VERIFICATION_URL_BASE=https://votehub.zapto.org/verify-email` in production.
+- Set `EMAIL_VERIFICATION_URL_BASE=https://votehub.me/verify-email` in production.
 - If SMTP resolves to unreachable IPv6 from cluster, set `SMTP_IP_FAMILY=4`.
 - If SMTP connection still times out on DOKS, switch to a provider/port reachable from your cluster (for example `smtp.sendgrid.net:2525`).
 
@@ -191,7 +191,7 @@ kubectl apply -k k8s/digitalocean
 
 This deploys:
 - Web Deployment/Service/HPA/PDB
-- Public Ingress (`votehub.zapto.org`)
+- Public Ingress (`votehub.me`)
 
 ## 10. Verify Deployment
 
@@ -203,9 +203,9 @@ kubectl get svc -n ingress-nginx
 ```
 
 Smoke checks:
-- `https://votehub.zapto.org/nginx-health`
-- `https://votehub.zapto.org/api/v1/health/live`
-- `https://votehub.zapto.org/api/v1/health/ready`
+- `https://votehub.me/nginx-health`
+- `https://votehub.me/api/v1/health/live`
+- `https://votehub.me/api/v1/health/ready`
 - Login + vote flow
 
 ## 11. Access Prometheus and Alertmanager
