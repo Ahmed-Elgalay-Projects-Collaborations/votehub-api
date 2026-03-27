@@ -83,6 +83,27 @@ jobs:
     environment: production
     env:
       DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      MONGO_URI: ${{ secrets.MONGO_URI }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      OTP_ENCRYPTION_KEY: ${{ secrets.OTP_ENCRYPTION_KEY }}
+      VOTE_ENCRYPTION_KEY: ${{ secrets.VOTE_ENCRYPTION_KEY }}
+      AUDIT_SIGNING_KEY: ${{ secrets.AUDIT_SIGNING_KEY }}
+      RECEIPT_SIGNING_KEY: ${{ secrets.RECEIPT_SIGNING_KEY }}
+      AUDIT_SALT: ${{ secrets.AUDIT_SALT }}
+      METRICS_TOKEN: ${{ secrets.METRICS_TOKEN }}
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      SMTP_SECURE: ${{ secrets.SMTP_SECURE }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASS: ${{ secrets.SMTP_PASS }}
+      SMTP_FROM: ${{ secrets.SMTP_FROM }}
+      SMTP_CONNECTION_TIMEOUT_MS: ${{ secrets.SMTP_CONNECTION_TIMEOUT_MS }}
+      SMTP_GREETING_TIMEOUT_MS: ${{ secrets.SMTP_GREETING_TIMEOUT_MS }}
+      SMTP_SOCKET_TIMEOUT_MS: ${{ secrets.SMTP_SOCKET_TIMEOUT_MS }}
+      SMTP_DNS_TIMEOUT_MS: ${{ secrets.SMTP_DNS_TIMEOUT_MS }}
+      SMTP_IP_FAMILY: ${{ secrets.SMTP_IP_FAMILY }}
+      DEFAULT_ADMIN_EMAIL: ${{ secrets.DEFAULT_ADMIN_EMAIL }}
+      DEFAULT_ADMIN_PASSWORD: ${{ secrets.DEFAULT_ADMIN_PASSWORD }}
     permissions:
       contents: read
     steps:
@@ -166,6 +187,92 @@ jobs:
 
       - name: Verify Kubernetes API connectivity
         run: kubectl cluster-info
+
+      - name: Validate required application secrets
+        shell: bash
+        run: |
+          missing=0
+          required=(
+            MONGO_URI
+            JWT_SECRET
+            OTP_ENCRYPTION_KEY
+            VOTE_ENCRYPTION_KEY
+            AUDIT_SIGNING_KEY
+            RECEIPT_SIGNING_KEY
+            AUDIT_SALT
+            METRICS_TOKEN
+          )
+          for key in "${required[@]}"; do
+            if [ -z "${!key}" ]; then
+              echo "Missing required GitHub secret: $key"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Ensure votehub namespace exists
+        shell: bash
+        run: |
+          kubectl get namespace votehub >/dev/null 2>&1 || kubectl create namespace votehub
+
+      - name: Sync Kubernetes runtime secrets
+        shell: bash
+        run: |
+          b64() {
+            printf '%s' "$1" | base64 -w 0
+          }
+
+          smtp_port="${SMTP_PORT:-2525}"
+          smtp_secure="${SMTP_SECURE:-false}"
+          smtp_connection_timeout_ms="${SMTP_CONNECTION_TIMEOUT_MS:-10000}"
+          smtp_greeting_timeout_ms="${SMTP_GREETING_TIMEOUT_MS:-10000}"
+          smtp_socket_timeout_ms="${SMTP_SOCKET_TIMEOUT_MS:-15000}"
+          smtp_dns_timeout_ms="${SMTP_DNS_TIMEOUT_MS:-10000}"
+          smtp_ip_family="${SMTP_IP_FAMILY:-4}"
+
+          cat <<EOF | kubectl apply -f -
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: votehub-api-secrets
+            namespace: votehub
+          type: Opaque
+          data:
+            MONGO_URI: $(b64 "$MONGO_URI")
+            JWT_SECRET: $(b64 "$JWT_SECRET")
+            OTP_ENCRYPTION_KEY: $(b64 "$OTP_ENCRYPTION_KEY")
+            VOTE_ENCRYPTION_KEY: $(b64 "$VOTE_ENCRYPTION_KEY")
+            AUDIT_SIGNING_KEY: $(b64 "$AUDIT_SIGNING_KEY")
+            RECEIPT_SIGNING_KEY: $(b64 "$RECEIPT_SIGNING_KEY")
+            AUDIT_SALT: $(b64 "$AUDIT_SALT")
+            METRICS_TOKEN: $(b64 "$METRICS_TOKEN")
+            SMTP_HOST: $(b64 "$SMTP_HOST")
+            SMTP_PORT: $(b64 "$smtp_port")
+            SMTP_SECURE: $(b64 "$smtp_secure")
+            SMTP_USER: $(b64 "$SMTP_USER")
+            SMTP_PASS: $(b64 "$SMTP_PASS")
+            SMTP_FROM: $(b64 "$SMTP_FROM")
+            SMTP_CONNECTION_TIMEOUT_MS: $(b64 "$smtp_connection_timeout_ms")
+            SMTP_GREETING_TIMEOUT_MS: $(b64 "$smtp_greeting_timeout_ms")
+            SMTP_SOCKET_TIMEOUT_MS: $(b64 "$smtp_socket_timeout_ms")
+            SMTP_DNS_TIMEOUT_MS: $(b64 "$smtp_dns_timeout_ms")
+            SMTP_IP_FAMILY: $(b64 "$smtp_ip_family")
+            DEFAULT_ADMIN_EMAIL: $(b64 "$DEFAULT_ADMIN_EMAIL")
+            DEFAULT_ADMIN_PASSWORD: $(b64 "$DEFAULT_ADMIN_PASSWORD")
+          EOF
+
+          cat <<EOF | kubectl apply -f -
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: votehub-monitoring-secrets
+            namespace: votehub
+          type: Opaque
+          data:
+            metrics_token: $(b64 "$METRICS_TOKEN")
+          EOF
 
       - name: Apply Kubernetes manifests
         run: kubectl apply -k k8s/digitalocean

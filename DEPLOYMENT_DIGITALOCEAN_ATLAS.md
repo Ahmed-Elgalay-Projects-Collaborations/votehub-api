@@ -44,6 +44,21 @@ Required GitHub repository secret in each repo:
 - `DOKS_KUBECONFIG_B64`: base64-encoded kubeconfig for the target cluster.
 - `DIGITALOCEAN_ACCESS_TOKEN` (required if your kubeconfig uses `exec` auth with `doctl`, common with DO-generated kubeconfig files).
 
+Additional required GitHub repository secrets for `votehub-api` CD secret sync:
+- `MONGO_URI`
+- `JWT_SECRET`
+- `OTP_ENCRYPTION_KEY`
+- `VOTE_ENCRYPTION_KEY`
+- `AUDIT_SIGNING_KEY`
+- `RECEIPT_SIGNING_KEY`
+- `AUDIT_SALT`
+- `METRICS_TOKEN`
+
+Optional GitHub repository secrets for `votehub-api` mail/admin tuning:
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`
+- `SMTP_CONNECTION_TIMEOUT_MS`, `SMTP_GREETING_TIMEOUT_MS`, `SMTP_SOCKET_TIMEOUT_MS`, `SMTP_DNS_TIMEOUT_MS`, `SMTP_IP_FAMILY`
+- `DEFAULT_ADMIN_EMAIL`, `DEFAULT_ADMIN_PASSWORD`
+
 Optional GitHub repository variable in `votehub-web`:
 - `VITE_API_URL`: build-time API base URL (defaults to `/api/v1`).
 
