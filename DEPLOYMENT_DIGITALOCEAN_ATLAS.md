@@ -10,7 +10,8 @@ This runbook deploys VoteHub on **DOKS** using:
 
 - Public traffic enters **NGINX Ingress Controller**.
 - Ingress routes to `web` service.
-- `web` pod runs NGINX and proxies `/api/*` to `api:3100`.
+- Public frontend host: `https://votehub.me`.
+- Public backend host: `https://api.votehub.me`.
 - `api` pod connects to MongoDB Atlas via `MONGO_URI`.
 - Prometheus scrapes `api:3100/metrics` with bearer token.
 - Alertmanager receives alerts from Prometheus.
@@ -24,6 +25,9 @@ Where NGINX exists:
 - DOKS cluster created and `kubectl` configured.
 - Atlas cluster ready (TLS enabled by Atlas default).
 - Domain DNS ready (`votehub.me`).
+- DNS `A` records:
+  - `votehub.me` -> ingress load balancer IP
+  - `api.votehub.me` -> ingress load balancer IP
 
 ### Optional: GitHub Auto-Deploy (CD)
 
@@ -219,8 +223,8 @@ kubectl get svc -n ingress-nginx
 
 Smoke checks:
 - `https://votehub.me/nginx-health`
-- `https://votehub.me/api/v1/health/live`
-- `https://votehub.me/api/v1/health/ready`
+- `https://api.votehub.me/api/v1/health/live`
+- `https://api.votehub.me/api/v1/health/ready`
 - Login + vote flow
 
 ## 11. Access Prometheus and Alertmanager

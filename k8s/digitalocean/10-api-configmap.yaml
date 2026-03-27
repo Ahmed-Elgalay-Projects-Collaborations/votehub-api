@@ -9,7 +9,7 @@ data:
   TRUST_PROXY: "1"
 
   CLIENT_URL: "https://votehub.me"
-  API_BASE_URL: "https://votehub.me/api/v1"
+  API_BASE_URL: "https://api.votehub.me/api/v1"
   CORS_ORIGINS: "https://votehub.me"
   EMAIL_VERIFICATION_URL_BASE: "https://votehub.me/verify-email"
 

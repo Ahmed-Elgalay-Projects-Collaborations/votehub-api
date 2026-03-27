@@ -5,6 +5,7 @@ resources:
   - 10-api-configmap.yaml
   - 20-api-deployment.yaml
   - 30-api-service.yaml
+  - 31-api-ingress.yaml
   - 40-api-hpa.yaml
   - 41-api-pdb.yaml
   - 50-prometheus-configmap.yaml
