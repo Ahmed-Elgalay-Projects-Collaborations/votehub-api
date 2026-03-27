@@ -1,4 +1,4 @@
-FROM node:22.22.1-alpine3.22 AS base
+FROM public.ecr.aws/docker/library/node:22-alpine AS base
 
 WORKDIR /usr/src/app
 COPY package*.json ./
