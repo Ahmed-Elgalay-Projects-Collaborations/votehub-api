@@ -98,14 +98,22 @@ export const verifyEmailByToken = async (rawToken, req = null) => {
 export const resendVerificationEmail = async (email, req = null) => {
   const normalizedEmail = String(email || "").trim().toLowerCase();
   if (!normalizedEmail) {
-    return { requested: true };
+    return { requested: true, sent: false };
   }
 
   const user = await User.findOne({ email: normalizedEmail });
   if (!user || user.emailVerified) {
-    return { requested: true };
+    return { requested: true, sent: false };
   }
 
-  await sendVerificationEmail(user, req);
-  return { requested: true };
+  try {
+    await sendVerificationEmail(user, req);
+    return { requested: true, sent: true };
+  } catch (error) {
+    logSecurityEvent("verification_email_resend_failed", req, {
+      userId: user.id,
+      reason: error.message
+    });
+    return { requested: true, sent: false };
+  }
 };

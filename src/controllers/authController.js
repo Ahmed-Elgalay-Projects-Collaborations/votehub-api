@@ -69,13 +69,25 @@ export const register = asyncHandler(async (req, res) => {
   const { fullName, email, password } = req.body;
   const payload = await registerUser({ fullName, email, password, role: "voter" });
 
-  await sendVerificationEmail({ id: payload.user.id, email: payload.user.email, emailVerified: false }, req);
+  let verificationEmailSent = true;
+  try {
+    await sendVerificationEmail({ id: payload.user.id, email: payload.user.email, emailVerified: false }, req);
+  } catch (error) {
+    verificationEmailSent = false;
+    logSecurityEvent("verification_email_send_failed", req, {
+      userId: payload.user.id,
+      reason: error.message
+    });
+  }
 
   res.status(201).json({
     success: true,
     data: {
       user: payload.user,
-      message: "Registration successful. Please verify your email before login."
+      verificationEmailSent,
+      message: verificationEmailSent
+        ? "Registration successful. Please verify your email before login."
+        : "Registration successful. Please verify your email before login. If you did not receive the email, request a resend."
     },
     requestId: req.id
   });
@@ -132,7 +144,7 @@ export const login = asyncHandler(async (req, res) => {
     logSecurityEvent("unverified_login_attempt", req, { userId: user.id });
     throw new ApiError(
       403,
-      "Please verify your email before logging in. A new verification email has been sent.",
+      "Please verify your email before logging in. If needed, request a new verification email.",
       "EMAIL_NOT_VERIFIED"
     );
   }
