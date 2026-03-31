@@ -12,6 +12,7 @@
 - Keep dependency updates active through Dependabot and patch critical vulnerabilities quickly.
 - Restrict infrastructure access with least-privilege roles and separate developer/admin permissions.
 - Keep rollback, backup, and restore procedures documented and tested regularly.
+- The use of Nginx for Content Security Policy (CSP) has been hardened to remove 'unsafe-inline'
 
 ## Frontend DevOps Rules
 
