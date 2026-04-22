@@ -1,7 +1,9 @@
 import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
+import fs from "fs";
 
 let mongoServer;
+let usingExternalMongo = false;
 
 process.env.NODE_ENV = "test";
 process.env.JWT_SECRET = "votehub_test_jwt_secret_key_which_is_long_enough_12345";
@@ -26,11 +28,56 @@ process.env.RISK_MEDIUM_THRESHOLD = "100";
 process.env.RISK_HIGH_THRESHOLD = "150";
 process.env.RISK_CRITICAL_THRESHOLD = "200";
 
+const isAlpineLinux = () => {
+  if (process.platform !== "linux") {
+    return false;
+  }
+
+  try {
+    const osRelease = fs.readFileSync("/etc/os-release", "utf8");
+    return /(^|\n)ID=alpine(\n|$)/.test(osRelease);
+  } catch (error) {
+    return false;
+  }
+};
+
+const extractDatabaseNameFromMongoUri = (uri) => {
+  const match = String(uri).match(/^mongodb(?:\+srv)?:\/\/[^/]+\/([^?]*)/i);
+  if (!match) {
+    return "";
+  }
+  return decodeURIComponent(match[1] || "").trim();
+};
+
+const ensureSafeTestMongoUri = (uri) => {
+  const dbName = extractDatabaseNameFromMongoUri(uri);
+  const allowNonTestDb = String(process.env.ALLOW_NON_TEST_DB || "").toLowerCase() === "true";
+
+  if (!allowNonTestDb && dbName && !/test/i.test(dbName)) {
+    throw new Error(
+      `Refusing to run destructive test cleanup against non-test DB "${dbName}". ` +
+      "Use TEST_MONGO_URI with a dedicated test database, or set ALLOW_NON_TEST_DB=true explicitly."
+    );
+  }
+};
+
 before(async function beforeAll() {
   this.timeout(900000);
 
-  mongoServer = await MongoMemoryServer.create();
-  process.env.MONGO_URI = mongoServer.getUri("votehub_test");
+  const externalTestMongoUri = process.env.TEST_MONGO_URI || process.env.MONGO_URI_TEST;
+  if (externalTestMongoUri) {
+    ensureSafeTestMongoUri(externalTestMongoUri);
+    process.env.MONGO_URI = externalTestMongoUri;
+    usingExternalMongo = true;
+  } else if (isAlpineLinux()) {
+    throw new Error(
+      "mongodb-memory-server is unsupported on Alpine. " +
+      "Set TEST_MONGO_URI (for example: mongodb://mongo:27017/votehub_test) and rerun tests."
+    );
+  } else {
+    mongoServer = await MongoMemoryServer.create();
+    process.env.MONGO_URI = mongoServer.getUri("votehub_test");
+  }
 
   await mongoose.connect(process.env.MONGO_URI);
 
@@ -47,7 +94,7 @@ beforeEach(async () => {
 after(async function afterAll() {
   this.timeout(120000);
   await mongoose.disconnect();
-  if (mongoServer) {
+  if (mongoServer && !usingExternalMongo) {
     await mongoServer.stop();
   }
 });

@@ -1,6 +1,9 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
 import env from "../config/env.js";
 
+const GCM_IV_LENGTH = 12;
+const GCM_AUTH_TAG_LENGTH = 16;
+
 const buildEncryptionKey = (providedKey, fallbackValue) => {
   if (providedKey) {
     const trimmed = providedKey.trim();
@@ -36,7 +39,7 @@ export const encryptSecret = (plainText) => {
     return "";
   }
 
-  const iv = randomBytes(12);
+  const iv = randomBytes(GCM_IV_LENGTH);
   const cipher = createCipheriv("aes-256-gcm", getEncryptionKey("otp"), iv);
   const encrypted = Buffer.concat([cipher.update(plainText, "utf8"), cipher.final()]);
   const authTag = cipher.getAuthTag();
@@ -57,9 +60,14 @@ export const decryptSecret = (encryptedValue) => {
   const iv = Buffer.from(ivB64, "base64");
   const authTag = Buffer.from(tagB64, "base64");
   const encryptedContent = Buffer.from(contentB64, "base64");
+  if (iv.length !== GCM_IV_LENGTH || authTag.length !== GCM_AUTH_TAG_LENGTH) {
+    return "";
+  }
 
   try {
-    const decipher = createDecipheriv("aes-256-gcm", getEncryptionKey("otp"), iv);
+    const decipher = createDecipheriv("aes-256-gcm", getEncryptionKey("otp"), iv, {
+      authTagLength: GCM_AUTH_TAG_LENGTH
+    });
     decipher.setAuthTag(authTag);
 
     const decrypted = Buffer.concat([decipher.update(encryptedContent), decipher.final()]);
@@ -70,7 +78,7 @@ export const decryptSecret = (encryptedValue) => {
 };
 
 export const encryptJson = (value, context = "vote") => {
-  const iv = randomBytes(12);
+  const iv = randomBytes(GCM_IV_LENGTH);
   const cipher = createCipheriv("aes-256-gcm", getEncryptionKey(context), iv);
   const payload = JSON.stringify(value ?? null);
   const encrypted = Buffer.concat([cipher.update(payload, "utf8"), cipher.final()]);
@@ -90,14 +98,22 @@ export const decryptJson = (encryptedValue, context = "vote") => {
   }
 
   try {
+    const iv = Buffer.from(ivB64, "base64");
+    const authTag = Buffer.from(tagB64, "base64");
+    const encryptedContent = Buffer.from(contentB64, "base64");
+    if (iv.length !== GCM_IV_LENGTH || authTag.length !== GCM_AUTH_TAG_LENGTH) {
+      return null;
+    }
+
     const decipher = createDecipheriv(
       "aes-256-gcm",
       getEncryptionKey(context),
-      Buffer.from(ivB64, "base64")
+      iv,
+      { authTagLength: GCM_AUTH_TAG_LENGTH }
     );
-    decipher.setAuthTag(Buffer.from(tagB64, "base64"));
+    decipher.setAuthTag(authTag);
 
-    const decrypted = Buffer.concat([decipher.update(Buffer.from(contentB64, "base64")), decipher.final()]);
+    const decrypted = Buffer.concat([decipher.update(encryptedContent), decipher.final()]);
     return JSON.parse(decrypted.toString("utf8"));
   } catch (error) {
     return null;

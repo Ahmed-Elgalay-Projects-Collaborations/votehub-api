@@ -145,6 +145,11 @@ Notes:
 - Tests run against an isolated in-memory database and do not require your development Mongo instance.
 - No production SMTP/services are required for tests.
 - On first run, `mongodb-memory-server` may download MongoDB binaries depending on your environment/CI cache.
+- Alpine Linux is not supported by `mongodb-memory-server`. On Alpine, run tests with a dedicated external test DB:
+  ```bash
+  TEST_MONGO_URI=mongodb://mongo:27017/votehub_test npm test
+  ```
+  Use a test-only database name. Test bootstrap clears collections between tests.
 
 ## Core API prefixes
 
