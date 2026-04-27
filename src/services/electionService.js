@@ -13,6 +13,8 @@ const ELECTION_TRANSITIONS = {
   archived: new Set()
 };
 
+const PUBLIC_ELECTION_STATUSES = ["published", "open"];
+
 const CRITICAL_OPEN_FIELDS = new Set(["type", "options", "startsAt", "endsAt", "maxSelections"]);
 
 const ensureElectionExists = async (electionId) => {
@@ -84,11 +86,11 @@ export const listElections = async ({ includeArchived = false, adminView = false
     }
   } else if (viewerId) {
     query.$or = [
-      { status: { $in: ["published", "open", "closed"] } },
+      { status: { $in: PUBLIC_ELECTION_STATUSES } },
       { createdBy: viewerId }
     ];
   } else {
-    query.status = { $in: ["published", "open", "closed"] };
+    query.status = { $in: PUBLIC_ELECTION_STATUSES };
   }
 
   return Election.find(query)
@@ -101,7 +103,11 @@ export const getElectionById = async (electionId, { viewerRole = "voter", viewer
   const election = await ensureElectionExists(electionId);
 
   const isOwner = viewerId && String(election.createdBy) === String(viewerId);
-  if (viewerRole !== "admin" && !isOwner && (election.status === "draft" || election.status === "archived")) {
+  if (
+    viewerRole !== "admin" &&
+    !isOwner &&
+    (election.status === "draft" || election.status === "closed" || election.status === "archived")
+  ) {
     throw new ApiError(404, "Election not found", "ELECTION_NOT_FOUND");
   }
 
