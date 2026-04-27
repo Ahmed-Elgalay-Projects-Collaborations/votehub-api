@@ -16,7 +16,14 @@ const corsOptions = {
   },
   credentials: env.enableCookieAuth,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token", "X-Requested-With"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-CSRF-Token",
+    "X-Requested-With",
+    "X-Admin-Step-Up-Token",
+    "Idempotency-Key"
+  ],
   maxAge: 86400
 };
 
